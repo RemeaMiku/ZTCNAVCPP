@@ -1,0 +1,188 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="头文件\Coordinate">
+      <UniqueIdentifier>{25fd8572-166e-4bd1-8312-c78433ccfeea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\Time">
+      <UniqueIdentifier>{14c120e2-0f64-40ac-8e54-e4027d4e8abe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\Numerics">
+      <UniqueIdentifier>{7797881f-72a7-44ff-ada7-976eb2e2c3c7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\OEM">
+      <UniqueIdentifier>{8894ee1b-4d82-46a8-a090-e64f8e10ba01}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\Coordinate">
+      <UniqueIdentifier>{64b3f81d-8889-4a5f-8d07-a8051233d8e2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\OEM">
+      <UniqueIdentifier>{50fbaba0-f200-45f5-8103-8b4d272a9e07}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\Numerics">
+      <UniqueIdentifier>{7ac6b822-18f0-4656-b3d5-fb7a3a1d1a71}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\Time">
+      <UniqueIdentifier>{281802c7-c8d2-425e-a92f-e548387ca92d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\Navigation">
+      <UniqueIdentifier>{39e2dc6a-0c51-4272-a673-2d44c4cbd989}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\Navigation">
+      <UniqueIdentifier>{6d44c6f0-aaf5-4e3f-ba89-718750caf542}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\Rtk">
+      <UniqueIdentifier>{95d06df2-6e37-4c4f-babd-246177306757}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="ZTCNAVCPP.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Data.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="GeoCoordinate.cpp">
+      <Filter>源文件\Coordinate</Filter>
+    </ClCompile>
+    <ClCompile Include="Coordinate.cpp">
+      <Filter>源文件\Coordinate</Filter>
+    </ClCompile>
+    <ClCompile Include="CartCoordinate.cpp">
+      <Filter>源文件\Coordinate</Filter>
+    </ClCompile>
+    <ClCompile Include="OEMBDSEPHEMRIS.cpp">
+      <Filter>源文件\OEM</Filter>
+    </ClCompile>
+    <ClCompile Include="OEMBESTPOS.cpp">
+      <Filter>源文件\OEM</Filter>
+    </ClCompile>
+    <ClCompile Include="OEMGPSEPHEM.cpp">
+      <Filter>源文件\OEM</Filter>
+    </ClCompile>
+    <ClCompile Include="OEMMessage.cpp">
+      <Filter>源文件\OEM</Filter>
+    </ClCompile>
+    <ClCompile Include="OEMRange.cpp">
+      <Filter>源文件\OEM</Filter>
+    </ClCompile>
+    <ClCompile Include="Matrix.cpp">
+      <Filter>源文件\Numerics</Filter>
+    </ClCompile>
+    <ClCompile Include="Vector.cpp">
+      <Filter>源文件\Numerics</Filter>
+    </ClCompile>
+    <ClCompile Include="Ellipsoid.cpp">
+      <Filter>源文件\Navigation</Filter>
+    </ClCompile>
+    <ClCompile Include="Ephemeris.cpp">
+      <Filter>源文件\Navigation</Filter>
+    </ClCompile>
+    <ClCompile Include="Observation.cpp">
+      <Filter>源文件\Navigation</Filter>
+    </ClCompile>
+    <ClCompile Include="Satellite.cpp">
+      <Filter>源文件\Navigation</Filter>
+    </ClCompile>
+    <ClCompile Include="DateTime.cpp">
+      <Filter>源文件\Time</Filter>
+    </ClCompile>
+    <ClCompile Include="GpsTime.cpp">
+      <Filter>源文件\Time</Filter>
+    </ClCompile>
+    <ClCompile Include="OutlierDetector.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="lambda.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Data.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Socket.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Coordinate.h">
+      <Filter>头文件\Coordinate</Filter>
+    </ClInclude>
+    <ClInclude Include="GeoCoordinate.h">
+      <Filter>头文件\Coordinate</Filter>
+    </ClInclude>
+    <ClInclude Include="CartCoordinate.h">
+      <Filter>头文件\Coordinate</Filter>
+    </ClInclude>
+    <ClInclude Include="Angle.hpp">
+      <Filter>头文件\Numerics</Filter>
+    </ClInclude>
+    <ClInclude Include="Matrix.h">
+      <Filter>头文件\Numerics</Filter>
+    </ClInclude>
+    <ClInclude Include="Vector.h">
+      <Filter>头文件\Numerics</Filter>
+    </ClInclude>
+    <ClInclude Include="OEMBDSEPHEMRIS.h">
+      <Filter>头文件\OEM</Filter>
+    </ClInclude>
+    <ClInclude Include="OEMBESTPOS.h">
+      <Filter>头文件\OEM</Filter>
+    </ClInclude>
+    <ClInclude Include="OEMDecoder.hpp">
+      <Filter>头文件\OEM</Filter>
+    </ClInclude>
+    <ClInclude Include="OEMGPSEPHEM.h">
+      <Filter>头文件\OEM</Filter>
+    </ClInclude>
+    <ClInclude Include="OEMMessageHeader.h">
+      <Filter>头文件\OEM</Filter>
+    </ClInclude>
+    <ClInclude Include="OEMRANGE.h">
+      <Filter>头文件\OEM</Filter>
+    </ClInclude>
+    <ClInclude Include="Ellipsoid.h">
+      <Filter>头文件\Navigation</Filter>
+    </ClInclude>
+    <ClInclude Include="Ephemeris.h">
+      <Filter>头文件\Navigation</Filter>
+    </ClInclude>
+    <ClInclude Include="Observation.h">
+      <Filter>头文件\Navigation</Filter>
+    </ClInclude>
+    <ClInclude Include="Positioning.hpp">
+      <Filter>头文件\Navigation</Filter>
+    </ClInclude>
+    <ClInclude Include="Satellite.h">
+      <Filter>头文件\Navigation</Filter>
+    </ClInclude>
+    <ClInclude Include="DateTime.h">
+      <Filter>头文件\Time</Filter>
+    </ClInclude>
+    <ClInclude Include="GpsTime.h">
+      <Filter>头文件\Time</Filter>
+    </ClInclude>
+    <ClInclude Include="GlobalIncludes.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="OutlierDetector.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Lambda.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="lambda.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ClassDiagram.cd" />
+  </ItemGroup>
+</Project>
