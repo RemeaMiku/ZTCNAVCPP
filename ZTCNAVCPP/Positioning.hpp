@@ -1,6 +1,7 @@
 #pragma once
 #include <cmath>
 #include <iostream>
+#include <limits>
 #include "Angle.hpp"
 #include "CartCoordinate.h"
 #include "Satellite.h"
@@ -377,8 +378,6 @@ namespace RealTimeKinematic
 			if (!rovObservations.contains(satellite))
 				continue;
 			auto& rovObs = rovObservations.at(satellite);
-			/*if (rovObs.Data.size() < 2)
-				continue;*/
 			auto satObservation = SatelliteObservation {};
 			auto& signalTypes = SignalTypesOfSatelliteSystems.at(satellite.System);
 			auto isAvailable = true;
@@ -402,13 +401,11 @@ namespace RealTimeKinematic
 					true
 				};
 			}
-			singleDifferenceObservations[satellite] = satObservation;
+			if (isAvailable)
+				singleDifferenceObservations[satellite] = satObservation;
 		}
 		return singleDifferenceObservations;
 	}
-
-	inline constexpr double MinimumVerticalAngle = Angle::ToRad(30.0);
-
 
 	std::map<SatelliteSystem, Satellite> FindReferenceSatellite(const std::map<Satellite, SatelliteObservation>& singleDifferenceObservations)
 	{
@@ -426,7 +423,7 @@ namespace RealTimeKinematic
 		for (auto& [system, satellites] : candidateSatellites)
 		{
 			float maxc_no = 0;
-			Satellite maxSat;
+			std::optional<Satellite> maxSat { std::nullopt };
 			for (auto& satellite : satellites)
 			{
 				auto& signalTypes = SignalTypesOfSatelliteSystems.at(satellite.System);
@@ -437,19 +434,41 @@ namespace RealTimeKinematic
 					maxSat = satellite;
 				}
 			}
-			referenceSatellites[system] = maxSat;
+			if (maxSat.has_value())
+				referenceSatellites[system] = maxSat.value();
 		}
 		return referenceSatellites;
 	}
 
-	struct RtkFloatResult
+
+	Matrix B, W, P, a, Q;
+
+	struct RtkResult
 	{
+		bool IsFixed;
+		GpsTime Time;
+		CartCoordinate RefPos;
 		CartCoordinate RovPos;
-		Matrix a;
-		Matrix Q;
+		double Pdop;
+		double Sigma;
+		double Ratio;
+		inline Vector BaseLine() const
+		{
+			Vector baseline { 3 };
+			for (auto i = 0; i < 3; i++)
+			{
+				baseline(i) = RovPos(i) - RefPos(i);
+			}
+			return baseline;
+		}
+		friend inline std::ostream& operator<<(std::ostream& os, const RtkResult& res)
+		{
+			os << std::format("T FIXED:{} GPSTIME:{} ROVPOS:{} BASELINE:{}RATIO:{:.4f} PDOP:{:.4f} SIGMA:{:.4f}", res.IsFixed, res.Time.ToString(), res.RovPos.ToString(), res.BaseLine().ToString(), res.Ratio, res.Pdop, res.Sigma);
+			return os;
+		}
 	};
 
-	std::optional<RtkFloatResult> RtkFloat(std::map<Satellite, SatelliteObservation>& singleDifferenceObs, const SinglePointPositioning::SppResult& refSppResult, const SinglePointPositioning::SppResult& rovSppResult, const std::map<SatelliteSystem, Satellite>& refSats)
+	std::optional<RtkResult> RtkFloat(std::map<Satellite, SatelliteObservation>& singleDifferenceObs, const SinglePointPositioning::SppResult& refSppResult, const SinglePointPositioning::SppResult& rovSppResult, const std::map<SatelliteSystem, Satellite>& refSats)
 	{
 		int satNum = singleDifferenceObs.size() - refSats.size();
 		if (satNum < 2)
@@ -465,10 +484,10 @@ namespace RealTimeKinematic
 		auto rovPos { rovSppResult.CartCoord };
 		auto isFirst { true };
 		auto& basePos = refSppResult.CartCoord;
-		Matrix B { 4 * satNum,3 + 2 * satNum };
-		Matrix W { 4 * satNum,1 };
-		Matrix P { 4 * satNum,4 * satNum };
-		Matrix a { 2 * satNum,1 };
+		B = { 4 * satNum,3 + 2 * satNum };
+		W = { 4 * satNum,1 };
+		P = { 4 * satNum,4 * satNum };
+		a = { 2 * satNum,1 };
 		Matrix X;
 		for (size_t times = 0; times < 10; times++)
 		{
@@ -552,7 +571,7 @@ namespace RealTimeKinematic
 				satIndex++;
 			}
 			auto Bt = B.Transpose();
-			auto Q = (Bt * P * B).Inverse();
+			Q = (Bt * P * B).Inverse();
 			X = Q * Bt * P * W;
 			rovPos.X() += X(0, 0);
 			rovPos.Y() += X(1, 0);
@@ -567,8 +586,16 @@ namespace RealTimeKinematic
 						Q2(i, j) = Q(i + 3, j + 3);
 					}
 				}
-				RtkFloatResult res { rovPos,a,Q2 };
-				return res;
+				Q = Q2;
+				RtkResult result;
+				result.Time = refSppResult.Time;
+				result.IsFixed = false;
+				result.Ratio = std::numeric_limits<double>::quiet_NaN();
+				result.RefPos = basePos;
+				result.RovPos = rovPos;
+				result.Sigma = sqrt((W.Transpose() * P * W)(0, 0) / (2 * satNum - 3));
+				result.Pdop = sqrt(Q2(0, 0) + Q2(1, 1) + Q2(2, 2));
+				return result;
 			}
 			isFirst = false;
 		}
@@ -586,46 +613,24 @@ namespace RealTimeKinematic
 		}
 	}
 
-	struct RtkResult
-	{
-		bool IsFixed;
-		GpsTime Time;
-		CartCoordinate RefPos;
-		CartCoordinate RovPos;
-		double Pdop;
-		double Sigma;
-		double Ratio;
-		inline Vector BaseLine() const
-		{
-			Vector baseline { 3 };
-			for (auto i = 0; i < 3; i++)
-			{
-				baseline(i) = RovPos(i) - RefPos(i);
-			}
-			return baseline;
-		}
-		friend inline std::ostream& operator<<(std::ostream& os, const RtkResult& res)
-		{
-			os << std::format("FIXED GPSTIME:{} ROVPOS:{} BASELINE:{}", res.Time.ToString(), res.RovPos.ToString(), res.BaseLine().ToString());
-			return os;
-		}
-	};
 
 
-	std::optional<RtkResult> RtkFixed(RtkFloatResult& floatRes, std::map<Satellite, SatelliteObservation>& singleDifferenceObs, const SinglePointPositioning::SppResult& refSppResult, const SinglePointPositioning::SppResult& rovSppResult, const std::map<SatelliteSystem, Satellite>& refSats)
+
+	RtkResult RtkFixed(RtkResult& rtkResult, std::map<Satellite, SatelliteObservation>& singleDifferenceObs, const SinglePointPositioning::SppResult& refSppResult, const SinglePointPositioning::SppResult& rovSppResult, const std::map<SatelliteSystem, Satellite>& refSats)
 	{
-		auto row = floatRes.Q.RowsCount();
-		double* Q = new double[row * row];
-		double* a = new double[row];
-		MatToPtr(floatRes.Q, Q);
-		MatToPtr(floatRes.a, a);
+		auto row = Q.RowsCount();
+		double* QPtr = new double[row * row];
+		double* aPtr = new double[row];
+		MatToPtr(Q, QPtr);
+		MatToPtr(a, aPtr);
 		double* F = new double[row * 2];
 		double* s = new double[2];
-		if (lambda(row, 2, a, Q, F, s) != 0)
-			return std::nullopt;
+		if (lambda(row, 2, aPtr, QPtr, F, s) != 0)
+			return rtkResult;
 		auto ratio = s[1] / s[0];
+		rtkResult.Ratio = ratio;
 		if (ratio <= 3)
-			return std::nullopt;
+			return rtkResult;
 		Matrix f { row,1 };
 		for (size_t i = 0; i < row; i++)
 		{
@@ -643,13 +648,13 @@ namespace RealTimeKinematic
 		auto rovPos { rovSppResult.CartCoord };
 		auto isFirst { true };
 		auto& basePos = refSppResult.CartCoord;
-		Matrix B { 2 * satNum,3 };
-		Matrix W { 2 * satNum,1 };
-		Matrix P { 2 * satNum,2 * satNum };
+		B = { 2 * satNum,3 };
+		W = { 2 * satNum,1 };
+		P = { 2 * satNum,2 * satNum };
 		Matrix X { 3,1 };
-		X(0, 0) = floatRes.RovPos.X();
-		X(1, 0) = floatRes.RovPos.Y();
-		X(2, 0) = floatRes.RovPos.Z();
+		X(0, 0) = rtkResult.RovPos.X();
+		X(1, 0) = rtkResult.RovPos.Y();
+		X(2, 0) = rtkResult.RovPos.Z();
 		for (auto times = 0; times < 5; times++)
 		{
 			auto satIndex = 0, columnStartIndex = 0;
@@ -710,25 +715,36 @@ namespace RealTimeKinematic
 				satIndex++;
 			}
 			auto Bt = B.Transpose();
-			auto Q2 = (Bt * P * B).Inverse();
-			X = Q2 * Bt * P * W;
+			Q = (Bt * P * B).Inverse();
+			X = Q * Bt * P * W;
 			rovPos.X() += X(0, 0);
 			rovPos.Y() += X(1, 0);
 			rovPos.Z() += X(2, 0);
 			if (Vector(X.GetColumn(0)).Norm() <= IterationThreshold)
 			{
-				RtkResult result;
-				result.Time = refSppResult.Time;
-				result.IsFixed = true;
-				result.Ratio = ratio;
-				result.RefPos = basePos;
-				result.RovPos = rovPos;
-				result.Sigma = sqrt((W.Transpose() * P * W)(0, 0) / (2 * satNum - 3));
-				delete[] Q, a, F, s;
-				return result;
+				rtkResult.IsFixed = true;
+				rtkResult.RovPos = rovPos;
+				rtkResult.Sigma = sqrt((W.Transpose() * P * W)(0, 0) / (2 * satNum - 3));
+				rtkResult.Pdop = sqrt(Q(0, 0) + Q(1, 1) + Q(2, 2));
+				delete[] QPtr, aPtr, F, s;
+				return rtkResult;
 			}
 		}
-		delete[] Q, a, F, s;
-		return std::nullopt;
+		delete[] QPtr, aPtr, F, s;
+		return rtkResult;
+	}
+
+	std::optional<RtkResult> Solve(const std::map<Satellite, SatelliteObservation>& rovObservations, const std::map<Satellite, SatelliteObservation>& refObservations, const SinglePointPositioning::SppResult& rovSppResult, const SinglePointPositioning::SppResult& refSppResult)
+	{
+		auto sdObs = BuildSingleDifferenceObservations(rovSppResult.SatelliteDatas, refSppResult.SatelliteDatas, rovObservations, refObservations);
+		if (sdObs.size() < 3)
+			return std::nullopt;
+		auto refSats = FindReferenceSatellite(sdObs);
+		if (refSats.size() < 1)
+			return std::nullopt;
+		auto rtkResultOrNull = RtkFloat(sdObs, refSppResult, rovSppResult, refSats);
+		if (!rtkResultOrNull.has_value())
+			return std::nullopt;
+		return RtkFixed(rtkResultOrNull.value(), sdObs, refSppResult, rovSppResult, refSats);
 	}
 }

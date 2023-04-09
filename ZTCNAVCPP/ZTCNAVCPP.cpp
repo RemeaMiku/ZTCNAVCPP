@@ -43,8 +43,8 @@ int main()
 	cin.tie(0);
 	cout.tie(0);
 
-	/*auto refPath = "D:\\RemeaMiku study\\course in progress\\卫星导航算法与程序设计\\short-baseline\\oem719-202203170900-1.bin";
-	auto rovPath = "D:\\RemeaMiku study\\course in progress\\卫星导航算法与程序设计\\short-baseline\\oem719-202203170900-2.bin";*/
+	//auto refPath = "D:\\RemeaMiku study\\course in progress\\卫星导航算法与程序设计\\short-baseline\\oem719-202203170900-1.bin";
+	//auto rovPath = "D:\\RemeaMiku study\\course in progress\\卫星导航算法与程序设计\\short-baseline\\oem719-202203170900-2.bin";
 	auto refPath = "D:\\RemeaMiku study\\course in progress\\卫星导航算法与程序设计\\Zero-baseline\\oem719-202203031500-1.bin";
 	auto rovPath = "D:\\RemeaMiku study\\course in progress\\卫星导航算法与程序设计\\Zero-baseline\\oem719-202203031500-2.bin";
 
@@ -72,36 +72,23 @@ int main()
 			state = IsSynchronous(rovTime, refTime);
 			if (state == 0)
 			{
-				cout << format("RTK:rovTime{}-refTime{}\n", rovTime.ToString(), refTime.ToString());
 				auto rovObservations = rovDetector.Filter(rovTime, rovRange.ObservationOf);
 				auto refObservations = refDetector.Filter(refTime, refRange.ObservationOf);
 				auto rovSppResult = SinglePointPositioning::Solve(rovTime, rovObservations);
 				auto refSppResult = SinglePointPositioning::Solve(refTime, refObservations);
 				if (rovSppResult.State == false || refSppResult.State == false)
 					break;
-				auto singleDifferenceObservations = RealTimeKinematic::BuildSingleDifferenceObservations(rovSppResult.SatelliteDatas, refSppResult.SatelliteDatas, rovObservations, refObservations);
-				singleDifferenceObservations = singleDifferenceDetector.Filter(refTime, singleDifferenceObservations);
-				auto refSats = RealTimeKinematic::FindReferenceSatellite(singleDifferenceObservations);
-				for (auto& [sys, sat] : refSats)
+				auto rtkResultOrNull = RealTimeKinematic::Solve(rovObservations, refObservations, rovSppResult, refSppResult);
+				if (!rtkResultOrNull.has_value())
 				{
-					cout << format("{}{}\n", Satellite::SystemCodeOfName.at(sys), sat.Id);
+					cout << "F" << endl;
+					break;
 				}
-				auto rtkFloatResOrNull = RealTimeKinematic::RtkFloat(singleDifferenceObservations, refSppResult, rovSppResult, refSats);
-				if (rtkFloatResOrNull.has_value())
-				{
-					cout << rtkFloatResOrNull.value().RovPos.ToString() << endl;
-					cout << RealTimeKinematic::RtkFixed(rtkFloatResOrNull.value(), singleDifferenceObservations, refSppResult, rovSppResult, refSats).value() << endl;
-				}
-				/*cout << "rov:" << SinglePointPositioning::Solve(rovTime, rovObservations) << endl;
-				cout << "ref:" << SinglePointPositioning::Solve(refTime, refObservations) << endl;*/
-				rtkNum++;
+				cout << rtkResultOrNull.value() << endl;
 				break;
 			}
 			if (state == 1)
 			{
-				/*cout << format("SPP:rovTime:{}\n", rovTime.ToString());
-				cout << "rov:" << SinglePointPositioning::Solve(rovTime, rovDetector.Filter(rovRange)) << endl;*/
-				sppNum++;
 				break;
 			}
 			if (state == -1)
@@ -111,42 +98,6 @@ int main()
 		}
 		rovRangeOrNull = decoder.Read(rovStream);
 	}
-	cout << rtkNum << endl;
-	cout << sppNum << endl;
-	/*bool byFile;
-	while (true)
-	{
-		cout << "输入文件路径。输入\"n\"则使用网络" << "\n";
-		cin >> inputPath;
-		if (inputPath != "n")
-		{
-			if (!exists(inputPath))
-			{
-				cerr << "路径不存在!" << "\n";
-				continue;
-			}
-			byFile = true;
-			break;
-		}
-		else
-		{
-			byFile = false;
-			break;
-		}
-	}
-	outputPath = format(".\\{:%Y%m%d%H%M%S}.txt", time_point_cast<seconds>(utc_clock::now()));
-	if (byFile)
-	{
-		auto start { utc_clock::now() };
-		RunByFile();
-		auto end { utc_clock::now() };
-		cout << duration_cast<duration<double>>(end - start) << "\n";
-		system("pause");
-	}
-	else
-	{
-		RunBySocket();
-	}*/
 }
 
 //void RunByFile()
