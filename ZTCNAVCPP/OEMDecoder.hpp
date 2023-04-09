@@ -132,13 +132,13 @@ public:
 								default:
 									break;
 							}
+							}
 						}
 					}
 				}
-			}
 		}
 		return std::nullopt;
-	};
+			};
 private:
 	void ReadOEMBDSEPHEMRIS()
 	{
@@ -271,4 +271,4 @@ private:
 		}
 		return range;
 	}
-};
+		};

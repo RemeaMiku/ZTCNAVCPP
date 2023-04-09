@@ -737,7 +737,9 @@ namespace RealTimeKinematic
 	std::optional<RtkResult> Solve(const std::map<Satellite, SatelliteObservation>& rovObservations, const std::map<Satellite, SatelliteObservation>& refObservations, const SinglePointPositioning::SppResult& rovSppResult, const SinglePointPositioning::SppResult& refSppResult)
 	{
 		auto sdObs = BuildSingleDifferenceObservations(rovSppResult.SatelliteDatas, refSppResult.SatelliteDatas, rovObservations, refObservations);
-		if (sdObs.size() < 3)
+		static OutlierDetector sdObsDetector;
+		sdObs = sdObsDetector.Filter(refSppResult.Time, sdObs);
+		if (rovSppResult.State == false || refSppResult.State == false || sdObs.size() < 3)
 			return std::nullopt;
 		auto refSats = FindReferenceSatellite(sdObs);
 		if (refSats.size() < 1)
