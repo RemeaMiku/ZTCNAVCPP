@@ -39,9 +39,6 @@
     <Filter Include="源文件\Navigation">
       <UniqueIdentifier>{6d44c6f0-aaf5-4e3f-ba89-718750caf542}</UniqueIdentifier>
     </Filter>
-    <Filter Include="头文件\Rtk">
-      <UniqueIdentifier>{95d06df2-6e37-4c4f-babd-246177306757}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ZTCNAVCPP.cpp">

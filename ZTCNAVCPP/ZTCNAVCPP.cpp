@@ -45,7 +45,6 @@ int main()
 	//关闭cin和cout绑定
 	cin.tie(0);
 	cout.tie(0);
-
 	RunBySocket();
 }
 
@@ -114,44 +113,39 @@ void RunByFile()
 unsigned char rovBuf[20480];
 unsigned char refBuf[20480];
 
-stringstream UCharBufferToStream(unsigned char* buf, int len)
+void UCharBufferToStream(unsigned char* buf, int len, stringstream& stream)
 {
 	if (len <= 0)
-		return{};
-	stringstream stream;
+		return;
+	stream.clear();
 	for (auto i = 0; i < len; i++)
-	{
 		stream << buf[i];
-	}
-	return stream;
+	return;
 }
 
 void RunBySocket()
 {
+	stringstream rovStream, refStream;
 	SOCKET rovListener, refListener;
 	OpenSocket(refListener, "47.114.134.129", 7190);
 	OpenSocket(rovListener, "8.140.46.126", 5002);
 	OEMDecoder<stringstream> decoder;
 	OutlierDetector rovDetector;
 	OutlierDetector refDetector;
-	optional<OEMRANGE> refRangeOrNull = nullopt;
-	optional<OEMRANGE> rovRangeOrNull = nullopt;
-	optional<GpsTime> cachedRefTime = nullopt;
-	optional<map<Satellite, SatelliteObservation>> cachedRefObs = nullopt;
-	auto total = 0;
-	auto solved = 0;
+	auto totalNum = 0;
+	auto rtkSolvedNum = 0;
 	while (true)
 	{
+		totalNum++;
 		auto start = utc_clock::now();
 		auto rovMsgLen = recv(rovListener, (char*)rovBuf, 20480, 0);
 		auto refMsgLen = recv(refListener, (char*)refBuf, 20480, 0);
 		cout << format("RovRecv:{}\n", rovMsgLen);
 		cout << format("RefRecv:{}\n", refMsgLen);
-		auto rovStream = UCharBufferToStream(rovBuf, rovMsgLen);
-		auto refStream = UCharBufferToStream(refBuf, refMsgLen);
-		rovRangeOrNull = decoder.Read(rovStream);
-		refRangeOrNull = decoder.Read(refStream);
-		total++;
+		UCharBufferToStream(rovBuf, rovMsgLen, rovStream);
+		UCharBufferToStream(refBuf, refMsgLen, refStream);
+		auto rovRangeOrNull = decoder.Read(rovStream);
+		auto refRangeOrNull = decoder.Read(refStream);
 		auto hasRov = false, hasRef = false;
 		OEMRANGE rovRange, refRange;
 		GpsTime rovTime, refTime;
@@ -181,151 +175,41 @@ void RunBySocket()
 			switch (state)
 			{
 				case Synchronous:
-					cachedRefTime = nullopt;
 					cout << "TryRtk:";
 					{
 						auto rtkResultOrNull = RealTimeKinematic::Solve(rovObs, refObs, rovSppRes, refSppRes);
 						if (!rtkResultOrNull.has_value())
 						{
-							cout << "F\n";
+							cout << "F";
 							break;
 						}
-						solved++;
-						cout << rtkResultOrNull.value() << endl;
+						rtkSolvedNum++;
+						cout << rtkResultOrNull.value();
 					}
 					break;
 				case RefBehindRov:
-					cout << "RefBehind";
-					if (!cachedRefTime.has_value())
-					{
-						cout << " TrySpp:\n";
-						cachedRefTime = refTime;
-						cachedRefObs = refObs;
-						break;
-					}
-					{
-						auto timeTemp = refTime;
-						auto obsTemp = refObs;
-						refTime = cachedRefTime.value();
-						refObs = cachedRefObs.value();
-						cachedRefTime = timeTemp;
-						cachedRefObs = obsTemp;
-						if (GetSynchronousState(rovTime, refTime) != Synchronous)
-						{
-							cout << "\n";
-							break;
-						}
-						refSppRes = SinglePointPositioning::Solve(refTime, refObs);
-						cout << " TryRtk:";
-						{
-							auto rtkResultOrNull = RealTimeKinematic::Solve(rovObs, refObs, rovSppRes, refSppRes);
-							if (!rtkResultOrNull.has_value())
-							{
-								cout << "F\n";
-								break;
-							}
-							solved++;
-							cout << rtkResultOrNull.value() << endl;
-						}
-					}
+					cout << "RefBehind TrySpp:";
 					break;
 				case RovBehindRef:
-					cout << "RovBehind TrySpp:\n";
-					cachedRefTime = nullopt;
+					cout << "RovBehind TrySpp:";
 					break;
 				default:
 					break;
 			}
 		}
-		if (hasRov && !hasRef)
+		if (totalNum % 100 == 0)
 		{
-			if (!cachedRefTime.has_value())
-				cout << '\n';
-			else
-			{
-				refTime = cachedRefTime.value();
-				if (GetSynchronousState(rovTime, refTime) != Synchronous)
-					cout << '\n';
-				else
-				{
-					refObs = cachedRefObs.value();
-					cachedRefTime = nullopt;
-					refSppRes = SinglePointPositioning::Solve(refTime, refObs);
-					cout << "TryRtk:";
-					auto rtkResultOrNull = RealTimeKinematic::Solve(rovObs, refObs, rovSppRes, refSppRes);
-					if (!rtkResultOrNull.has_value())
-						cout << "F\n";
-					else
-					{
-						solved++;
-						cout << rtkResultOrNull.value() << endl;
-					}
-				}
-			}
+			stringstream tempRovStream;
+			stringstream tempRefStream;
+			tempRovStream << rovStream.rdbuf();
+			tempRefStream << refStream.rdbuf();
+			rovStream = move(tempRovStream);
+			refStream = move(tempRefStream);
 		}
-		if (!hasRov && hasRef)
-		{
-			cachedRefTime = refTime;
-			cachedRefObs = refObs;
-		}
-		if (!hasRov)
-			cout << '\n';
-		cout << format("{}/{}\n\n", solved, total);
 		auto end = utc_clock::now();
 		auto duration = duration_cast<milliseconds>(end - start).count();
-		if (duration <= 1000)
+		cout << format("\n{}ms,{}/{}={:.4f}\%\n\n", duration, rtkSolvedNum, totalNum, rtkSolvedNum * 100.0 / totalNum);
+		if (duration < 1000)
 			Sleep(1000 - duration);
 	}
 }
-//void RunByFile()
-//{
-//	ifstream is { inputPath,ios::binary | ios::in };
-//	ofstream os { outputPath,ios::out };
-//	OEMDecoder<ifstream> decoder;
-//	cout << title << "\n";
-//	os << title << "\n";
-//	auto i { 0 };
-//	while (!is.eof())
-//	{
-//		if (auto range = decoder.Read(is); range.has_value())
-//		{
-//			i++;
-//			auto res { SinglePointPositioning::Solve(range.value()) };
-//			cout << format("{} ", i) << res << "\n";
-//			os << format("{} ", i) << res << "\n";
-//		}
-//	}
-//}
-//
-//void RunBySocket()
-//{
-//	ofstream os { outputPath,ios::out };
-//	OEMDecoder<stringstream> decoder;
-//	SOCKET listener;
-//	OpenSocket(listener, "47.114.134.129", 7190);
-//	cout << title << "\n";
-//	os << title << "\n";
-//	auto i { 0 };
-//	while (true)
-//	{
-//		auto n = recv(listener, (char*)buf, 20480, 0);
-//		if (n >= 0)
-//		{
-//			stringstream is;
-//			for (int j = 0; j < n; j++)
-//			{
-//				is << buf[j];
-//			}
-//			while (!is.eof())
-//			{
-//				if (auto range = decoder.Read(is); range.has_value())
-//				{
-//					i++;
-//					auto res { SinglePointPositioning::Solve(range.value()) };
-//					cout << format("{} ", i) << res << "\n";
-//					os << format("{} ", i) << res << "\n";
-//				}
-//			}
-//		}
-//	}
-//}
