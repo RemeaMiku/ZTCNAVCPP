@@ -59,8 +59,9 @@ private:
 		requires std::is_floating_point_v<FieldType> || std::is_integral_v<FieldType>
 	inline FieldType StreamRead(Stream & stream)
 	{
+		int fieldSize = sizeof(FieldType);
 		FieldType res {};
-		stream.read((char*)&res, sizeof(FieldType));
+		stream.read((char*)&res, fieldSize);
 		return res;
 	}
 	/// <summary>
@@ -94,21 +95,39 @@ public:
 		while (!stream.eof())
 		{
 			auto p { StreamRead<uc>(stream) };
+			if (stream.tellg() == -1)
+				break;
 			if (p == 0XAA)
 			{
+				if (stream.tellg() == -1)
+					break;
 				p = StreamRead<uc>(stream);
 				if (p == 0X44)
 				{
+					if (stream.tellg() == -1)
+						break;
 					p = StreamRead<uc>(stream);
 					if (p == 0X12)
 					{
+						if (stream.tellg() == -1)
+							break;
 						auto hdLen { StreamRead<uc>(stream) };
+						if (stream.tellg() == -1)
+							break;
 						StreamOffset(stream, 4);
+						if (stream.tellg() == -1)
+							break;
 						auto msgLen { StreamRead<us>(stream) };
+						if (stream.tellg() == -1)
+							break;
 						StreamOffset(stream, -10);
+						if (stream.tellg() == -1)
+							break;
 						auto size { hdLen + msgLen };
 						_message = vec(size);
 						stream.read((char*)&_message[0], size);
+						if (stream.eof())
+							break;
 						const auto originalCRC { StreamRead<ui>(stream) };
 						if (originalCRC == Crc32Verification())
 							[[likely]]
@@ -132,13 +151,13 @@ public:
 								default:
 									break;
 							}
-							}
 						}
 					}
 				}
+			}
 		}
 		return std::nullopt;
-			};
+	};
 private:
 	void ReadOEMBDSEPHEMRIS()
 	{
@@ -271,4 +290,4 @@ private:
 		}
 		return range;
 	}
-		};
+};

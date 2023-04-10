@@ -28,7 +28,7 @@ enum SynchronousState
 	RovBehindRef
 };
 
-SynchronousState IsSynchronous(const GpsTime& rovTime, const GpsTime& refTime)
+SynchronousState GetSynchronousState(const GpsTime& rovTime, const GpsTime& refTime)
 {
 	auto offSet = refTime - rovTime;
 	if (offSet > 0.1)
@@ -76,7 +76,7 @@ void RunByFile()
 			auto& refRange = refRangeOrNull.value();
 			auto rovTime = rovRange.Header.Time;
 			auto refTime = refRange.Header.Time;
-			state = IsSynchronous(rovTime, refTime);
+			state = GetSynchronousState(rovTime, refTime);
 			if (state == 0)
 			{
 				auto rovObservations = rovDetector.Filter(rovTime, rovRange.ObservationOf);
@@ -128,15 +128,12 @@ stringstream UCharBufferToStream(unsigned char* buf, int len)
 
 void RunBySocket()
 {
-	stringstream rovStream;
-	stringstream refStream;
 	SOCKET rovListener, refListener;
 	OpenSocket(refListener, "47.114.134.129", 7190);
 	OpenSocket(rovListener, "8.140.46.126", 5002);
 	OEMDecoder<stringstream> decoder;
 	OutlierDetector rovDetector;
 	OutlierDetector refDetector;
-	SynchronousState state = Synchronous;
 	optional<OEMRANGE> refRangeOrNull = nullopt;
 	optional<OEMRANGE> rovRangeOrNull = nullopt;
 	optional<GpsTime> cachedRefTime = nullopt;
@@ -147,87 +144,132 @@ void RunBySocket()
 	{
 		auto start = utc_clock::now();
 		auto rovMsgLen = recv(rovListener, (char*)rovBuf, 20480, 0);
-		cout << format("RovRecv:{}\n", rovMsgLen);
 		auto refMsgLen = recv(refListener, (char*)refBuf, 20480, 0);
+		cout << format("RovRecv:{}\n", rovMsgLen);
 		cout << format("RefRecv:{}\n", refMsgLen);
 		auto rovStream = UCharBufferToStream(rovBuf, rovMsgLen);
 		auto refStream = UCharBufferToStream(refBuf, refMsgLen);
 		rovRangeOrNull = decoder.Read(rovStream);
 		refRangeOrNull = decoder.Read(refStream);
 		total++;
+		auto hasRov = false, hasRef = false;
+		OEMRANGE rovRange, refRange;
+		GpsTime rovTime, refTime;
+		map<Satellite, SatelliteObservation> rovObs, refObs;
+		SinglePointPositioning::SppResult rovSppRes, refSppRes;
 		if (rovRangeOrNull.has_value())
 		{
-			cout << "RovRange";
-			auto& rovRange = rovRangeOrNull.value();
-			auto rovTime = rovRange.Header.Time;
-			auto rovObservations = rovDetector.Filter(rovTime, rovRange.ObservationOf);
-			auto rovSppResult = SinglePointPositioning::Solve(rovTime, rovObservations);
-			while (refRangeOrNull.has_value())
+			hasRov = true;
+			rovRange = rovRangeOrNull.value();
+			rovTime = rovRange.Header.Time;
+			rovObs = rovDetector.Filter(rovTime, rovRange.ObservationOf);
+			rovSppRes = SinglePointPositioning::Solve(rovTime, rovObs);
+			cout << "RovRange ";
+		}
+		if (refRangeOrNull.has_value())
+		{
+			hasRef = true;
+			refRange = refRangeOrNull.value();
+			refTime = refRange.Header.Time;
+			refObs = refDetector.Filter(refTime, refRange.ObservationOf);
+			refSppRes = SinglePointPositioning::Solve(refTime, refObs);
+			cout << "RefRange ";
+		}
+		if (hasRov && hasRef)
+		{
+			auto state = GetSynchronousState(rovTime, refTime);
+			switch (state)
 			{
-				cout << " RefRange";
-				auto& refRange = refRangeOrNull.value();
-				auto refTime = refRange.Header.Time;
-				auto refObservations = refDetector.Filter(refTime, refRange.ObservationOf);
-				auto refSppResult = SinglePointPositioning::Solve(refTime, refObservations);
-				state = IsSynchronous(rovTime, refTime);
-				if (state == Synchronous)
-				{
-					cout << " TryRtk:";
+				case Synchronous:
 					cachedRefTime = nullopt;
-					auto rtkResultOrNull = RealTimeKinematic::Solve(rovObservations, refObservations, rovSppResult, refSppResult);
-					if (!rtkResultOrNull.has_value())
+					cout << "TryRtk:";
 					{
-						cout << "F\n";
-						break;
+						auto rtkResultOrNull = RealTimeKinematic::Solve(rovObs, refObs, rovSppRes, refSppRes);
+						if (!rtkResultOrNull.has_value())
+						{
+							cout << "F\n";
+							break;
+						}
+						solved++;
+						cout << rtkResultOrNull.value() << endl;
 					}
-					solved++;
-					cout << rtkResultOrNull.value() << endl;
 					break;
-				}
-				if (state == RefBehindRov)
-				{
-					cout << " RefBehind TrySpp\n";
-					/*if (!cachedRefTime.has_value())
+				case RefBehindRov:
+					cout << "RefBehind";
+					if (!cachedRefTime.has_value())
 					{
-						cout << " RefBehind TrySpp\n";
+						cout << " TrySpp:\n";
 						cachedRefTime = refTime;
-						cachedRefObs = refObservations;
+						cachedRefObs = refObs;
 						break;
 					}
-					cout << " RefBehind TryCache:";
-					refTime = cachedRefTime.value();
-					refObservations = cachedRefObs.value();
-					refSppResult = SinglePointPositioning::Solve(refTime, refObservations);
-					state = IsSynchronous(rovTime, refTime);
-					if (state != Synchronous)
 					{
-						cachedRefTime = nullopt;
-						cout << "F\n";
-						break;
+						auto timeTemp = refTime;
+						auto obsTemp = refObs;
+						refTime = cachedRefTime.value();
+						refObs = cachedRefObs.value();
+						cachedRefTime = timeTemp;
+						cachedRefObs = obsTemp;
+						if (GetSynchronousState(rovTime, refTime) != Synchronous)
+						{
+							cout << "\n";
+							break;
+						}
+						refSppRes = SinglePointPositioning::Solve(refTime, refObs);
+						cout << " TryRtk:";
+						{
+							auto rtkResultOrNull = RealTimeKinematic::Solve(rovObs, refObs, rovSppRes, refSppRes);
+							if (!rtkResultOrNull.has_value())
+							{
+								cout << "F\n";
+								break;
+							}
+							solved++;
+							cout << rtkResultOrNull.value() << endl;
+						}
 					}
-					cout << " TryRtk:";
-					auto rtkResultOrNull = RealTimeKinematic::Solve(rovObservations, refObservations, rovSppResult, refSppResult);
-					if (!rtkResultOrNull.has_value())
-					{
-						cachedRefTime = nullopt;
-						cout << "F\n";
-						break;
-					}
-					solved++;
-					cachedRefTime = nullopt;
-					cout << rtkResultOrNull.value() << endl;*/
 					break;
-				}
-				if (state == RovBehindRef)
+				case RovBehindRef:
+					cout << "RovBehind TrySpp:\n";
+					cachedRefTime = nullopt;
+					break;
+				default:
+					break;
+			}
+		}
+		if (hasRov && !hasRef)
+		{
+			if (!cachedRefTime.has_value())
+				cout << '\n';
+			else
+			{
+				refTime = cachedRefTime.value();
+				if (GetSynchronousState(rovTime, refTime) != Synchronous)
+					cout << '\n';
+				else
 				{
-					cout << " RovBehind TrySpp\n";
+					refObs = cachedRefObs.value();
 					cachedRefTime = nullopt;
-					//refRangeOrNull = decoder.Read(refStream);
-					//cachedRefSppResult = nullopt;
-					break;
+					refSppRes = SinglePointPositioning::Solve(refTime, refObs);
+					cout << "TryRtk:";
+					auto rtkResultOrNull = RealTimeKinematic::Solve(rovObs, refObs, rovSppRes, refSppRes);
+					if (!rtkResultOrNull.has_value())
+						cout << "F\n";
+					else
+					{
+						solved++;
+						cout << rtkResultOrNull.value() << endl;
+					}
 				}
 			}
 		}
+		if (!hasRov && hasRef)
+		{
+			cachedRefTime = refTime;
+			cachedRefObs = refObs;
+		}
+		if (!hasRov)
+			cout << '\n';
 		cout << format("{}/{}\n\n", solved, total);
 		auto end = utc_clock::now();
 		auto duration = duration_cast<milliseconds>(end - start).count();
