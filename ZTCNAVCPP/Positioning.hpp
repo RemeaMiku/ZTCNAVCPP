@@ -368,12 +368,12 @@ namespace SinglePointPositioning
 
 namespace RealTimeKinematic
 {
-	std::map<Satellite, SatelliteObservation> BuildSingleDifferenceObservations(const std::map<Satellite, SinglePointPositioning::SatelliteData>& rovSatDatas, const std::map<Satellite, SinglePointPositioning::SatelliteData>& refSatDatas, const std::map<Satellite, SatelliteObservation>& rovObservations, const std::map<Satellite, SatelliteObservation>& refObservations)
+	std::map<Satellite, SatelliteObservation> BuildSingleDifferenceObservations(const std::map<Satellite, SinglePointPositioning::SatelliteData>& rovSatDatas, const std::map<Satellite, SinglePointPositioning::SatelliteData>& baseSatDatas, const std::map<Satellite, SatelliteObservation>& rovObservations, const std::map<Satellite, SatelliteObservation>& baseObservations)
 	{
 		std::map<Satellite, SatelliteObservation> singleDifferenceObservations;
-		for (auto& [satellite, refObs] : refObservations)
+		for (auto& [satellite, baseObs] : baseObservations)
 		{
-			if (!refSatDatas.contains(satellite) || !rovSatDatas.contains(satellite))
+			if (!baseSatDatas.contains(satellite) || !rovSatDatas.contains(satellite))
 				continue;
 			if (!rovObservations.contains(satellite))
 				continue;
@@ -384,20 +384,20 @@ namespace RealTimeKinematic
 			for (auto& signalType : signalTypes)
 			{
 				auto& rovData = rovObs.Data.at(signalType);
-				auto& refData = refObs.Data.at(signalType);
-				if (rovData.ParityFlag == 0 || refData.ParityFlag == 0)
+				auto& baseData = baseObs.Data.at(signalType);
+				if (rovData.ParityFlag == 0 || baseData.ParityFlag == 0)
 				{
 					isAvailable = false;
 					break;
 				}
 				satObservation.Data[signalType] = ObservationData
 				{
-					rovData.Pseudorange - refData.Pseudorange,
+					rovData.Pseudorange - baseData.Pseudorange,
 					0,
-					rovData.CarrierPhase - refData.CarrierPhase,
+					rovData.CarrierPhase - baseData.CarrierPhase,
 					0,
 					0,
-					std::min(rovData.C_No,refData.C_No),
+					std::min(rovData.C_No,baseData.C_No),
 					true
 				};
 			}
@@ -409,7 +409,7 @@ namespace RealTimeKinematic
 
 	std::map<SatelliteSystem, Satellite> FindReferenceSatellite(const std::map<Satellite, SatelliteObservation>& singleDifferenceObservations)
 	{
-		std::map<SatelliteSystem, Satellite> referenceSatellites;
+		std::map<SatelliteSystem, Satellite> baseerenceSatellites;
 		std::map<SatelliteSystem, std::vector<Satellite>> candidateSatellites;
 		for (auto& [satellite, observation] : singleDifferenceObservations)
 		{
@@ -435,9 +435,9 @@ namespace RealTimeKinematic
 				}
 			}
 			if (maxSat.has_value())
-				referenceSatellites[system] = maxSat.value();
+				baseerenceSatellites[system] = maxSat.value();
 		}
-		return referenceSatellites;
+		return baseerenceSatellites;
 	}
 
 
@@ -463,12 +463,12 @@ namespace RealTimeKinematic
 		}
 		friend inline std::ostream& operator<<(std::ostream& os, const RtkResult& res)
 		{
-			os << std::format("T FIXED:{} GPSTIME:{} ROVPOS:{} BASELINE:{}RATIO:{:.4f} PDOP:{:.4f} SIGMA:{:.4f}", res.IsFixed, res.Time.ToString(), res.RovPos.ToString(), res.BaseLine().ToString(), res.Ratio, res.Pdop, res.Sigma);
+			os << std::format("{} {} {} {} {}{:.4f} {:.4f} {:.4f}", res.IsFixed ? "FIXED" : "FLOAT", res.Time.ToString(), res.RovPos.ToString(), res.RovPos.ToBLH(WGS_84).ToString(), res.BaseLine().ToString(), res.Ratio, res.Pdop, res.Sigma);
 			return os;
 		}
 	};
 
-	std::optional<RtkResult> RtkFloat(std::map<Satellite, SatelliteObservation>& singleDifferenceObs, const SinglePointPositioning::SppResult& refSppResult, const SinglePointPositioning::SppResult& rovSppResult, const std::map<SatelliteSystem, Satellite>& refSats)
+	std::optional<RtkResult> RtkFloat(std::map<Satellite, SatelliteObservation>& singleDifferenceObs, const SinglePointPositioning::SppResult& baseSppResult, const SinglePointPositioning::SppResult& rovSppResult, const std::map<SatelliteSystem, Satellite>& refSats)
 	{
 		int satNum = singleDifferenceObs.size() - refSats.size();
 		if (satNum < 2)
@@ -483,7 +483,7 @@ namespace RealTimeKinematic
 		}
 		auto rovPos { rovSppResult.CartCoord };
 		auto isFirst { true };
-		auto& basePos = refSppResult.CartCoord;
+		auto& basePos = BasePos;
 		B = { 4 * satNum,3 + 2 * satNum };
 		W = { 4 * satNum,1 };
 		P = { 4 * satNum,4 * satNum };
@@ -498,13 +498,13 @@ namespace RealTimeKinematic
 				auto& refSat = refSats.at(sat.System);
 				if (refSat == sat)
 					continue;
-				auto& refPos = rovSppResult.SatelliteDatas.at(refSat).Coord;
+				auto& rovRefSatPos = rovSppResult.SatelliteDatas.at(refSat).Coord;
 				auto& rovSatPos = rovSppResult.SatelliteDatas.at(sat).Coord;
-				auto satRovDis = CartCoordinate::Distance(rovPos, rovSatPos);
-				auto refRovDis = CartCoordinate::Distance(rovPos, refPos);
-				auto l = (rovPos.X() - rovSatPos.X()) / satRovDis - (rovPos.X() - refPos.X()) / refRovDis;
-				auto m = (rovPos.Y() - rovSatPos.Y()) / satRovDis - (rovPos.Y() - refPos.Y()) / refRovDis;
-				auto n = (rovPos.Z() - rovSatPos.Z()) / satRovDis - (rovPos.Z() - refPos.Z()) / refRovDis;
+				auto rovSatDis = CartCoordinate::Distance(rovPos, rovSatPos);
+				auto rovRefSatDis = CartCoordinate::Distance(rovPos, rovRefSatPos);
+				auto l = (rovPos.X() - rovSatPos.X()) / rovSatDis - (rovPos.X() - rovRefSatPos.X()) / rovRefSatDis;
+				auto m = (rovPos.Y() - rovSatPos.Y()) / rovSatDis - (rovPos.Y() - rovRefSatPos.Y()) / rovRefSatDis;
+				auto n = (rovPos.Z() - rovSatPos.Z()) / rovSatDis - (rovPos.Z() - rovRefSatPos.Z()) / rovRefSatDis;
 				auto& types = SignalTypesOfSatelliteSystems.at(sat.System);
 				auto f1 = FrequencyOfSignalType.at(types[0]);
 				auto f2 = FrequencyOfSignalType.at(types[1]);
@@ -519,11 +519,11 @@ namespace RealTimeKinematic
 				}
 				B(rowStartIndex + 2, 3 + 2 * satIndex) = lambda1;
 				B(rowStartIndex + 3, 4 + 2 * satIndex) = lambda2;
-				auto& refSdObs = singleDifferenceObs.at(refSat);
-				auto P1 = sdObs.Data.at(types[0]).Pseudorange - refSdObs.Data.at(types[0]).Pseudorange;
-				auto P2 = sdObs.Data.at(types[1]).Pseudorange - refSdObs.Data.at(types[1]).Pseudorange;
-				auto L1 = sdObs.Data.at(types[0]).CarrierPhase - refSdObs.Data.at(types[0]).CarrierPhase;
-				auto L2 = sdObs.Data.at(types[1]).CarrierPhase - refSdObs.Data.at(types[1]).CarrierPhase;
+				auto& refSatSdObs = singleDifferenceObs.at(refSat);
+				auto P1 = sdObs.Data.at(types[0]).Pseudorange - refSatSdObs.Data.at(types[0]).Pseudorange;
+				auto P2 = sdObs.Data.at(types[1]).Pseudorange - refSatSdObs.Data.at(types[1]).Pseudorange;
+				auto L1 = sdObs.Data.at(types[0]).CarrierPhase - refSatSdObs.Data.at(types[0]).CarrierPhase;
+				auto L2 = sdObs.Data.at(types[1]).CarrierPhase - refSatSdObs.Data.at(types[1]).CarrierPhase;
 				double N1, N2;
 				if (isFirst)
 				{
@@ -537,10 +537,11 @@ namespace RealTimeKinematic
 				}
 				a(2 * satIndex, 0) = N1;
 				a(1 + 2 * satIndex, 0) = N2;
-				auto& baseSatPos = refSppResult.SatelliteDatas.at(sat).Coord;
-				auto satBaseDis = CartCoordinate::Distance(basePos, baseSatPos);
-				auto refBaseDis = CartCoordinate::Distance(basePos, refPos);
-				auto rho = (satRovDis - refRovDis) - (satBaseDis - refBaseDis);
+				auto& baseRefSatPos = baseSppResult.SatelliteDatas.at(refSat).Coord;
+				auto& baseSatPos = baseSppResult.SatelliteDatas.at(sat).Coord;
+				auto baseSatDis = CartCoordinate::Distance(basePos, baseSatPos);
+				auto baseRefSatDis = CartCoordinate::Distance(basePos, baseRefSatPos);
+				auto rho = (rovSatDis - rovRefSatDis) - (baseSatDis - baseRefSatDis);
 				W(rowStartIndex, 0) = P1 - rho;
 				W(rowStartIndex + 1, 0) = P2 - rho;
 				W(rowStartIndex + 2, 0) = L1 - rho - lambda1 * N1;
@@ -588,7 +589,7 @@ namespace RealTimeKinematic
 				}
 				Q = Q2;
 				RtkResult result;
-				result.Time = refSppResult.Time;
+				result.Time = baseSppResult.Time;
 				result.IsFixed = false;
 				result.Ratio = std::numeric_limits<double>::quiet_NaN();
 				result.RefPos = basePos;
@@ -616,7 +617,7 @@ namespace RealTimeKinematic
 
 
 
-	RtkResult RtkFixed(RtkResult& rtkResult, std::map<Satellite, SatelliteObservation>& singleDifferenceObs, const SinglePointPositioning::SppResult& refSppResult, const SinglePointPositioning::SppResult& rovSppResult, const std::map<SatelliteSystem, Satellite>& refSats)
+	RtkResult RtkFixed(RtkResult& rtkResult, std::map<Satellite, SatelliteObservation>& singleDifferenceObs, const SinglePointPositioning::SppResult& baseSppResult, const SinglePointPositioning::SppResult& rovSppResult, const std::map<SatelliteSystem, Satellite>& refSats)
 	{
 		auto row = Q.RowsCount();
 		double* QPtr = new double[row * row];
@@ -645,16 +646,12 @@ namespace RealTimeKinematic
 				continue;
 			ddObsNums[sat.System] ++;
 		}
-		auto rovPos { rovSppResult.CartCoord };
-		auto isFirst { true };
-		auto& basePos = refSppResult.CartCoord;
+		auto& rovPos = rtkResult.RovPos;
+		auto& basePos = BasePos;
 		B = { 2 * satNum,3 };
 		W = { 2 * satNum,1 };
 		P = { 2 * satNum,2 * satNum };
-		Matrix X { 3,1 };
-		X(0, 0) = rtkResult.RovPos.X();
-		X(1, 0) = rtkResult.RovPos.Y();
-		X(2, 0) = rtkResult.RovPos.Z();
+		Matrix X;
 		for (auto times = 0; times < 5; times++)
 		{
 			auto satIndex = 0, columnStartIndex = 0;
@@ -664,13 +661,13 @@ namespace RealTimeKinematic
 				auto& refSat = refSats.at(sat.System);
 				if (refSat == sat)
 					continue;
-				auto& refPos = rovSppResult.SatelliteDatas.at(refSat).Coord;
+				auto& rovRefSatPos = rovSppResult.SatelliteDatas.at(refSat).Coord;
 				auto& rovSatPos = rovSppResult.SatelliteDatas.at(sat).Coord;
-				auto satRovDis = CartCoordinate::Distance(rovPos, rovSatPos);
-				auto refRovDis = CartCoordinate::Distance(rovPos, refPos);
-				auto l = (rovPos.X() - rovSatPos.X()) / satRovDis - (rovPos.X() - refPos.X()) / refRovDis;
-				auto m = (rovPos.Y() - rovSatPos.Y()) / satRovDis - (rovPos.Y() - refPos.Y()) / refRovDis;
-				auto n = (rovPos.Z() - rovSatPos.Z()) / satRovDis - (rovPos.Z() - refPos.Z()) / refRovDis;
+				auto rovSatDis = CartCoordinate::Distance(rovPos, rovSatPos);
+				auto rovRefSatDis = CartCoordinate::Distance(rovPos, rovRefSatPos);
+				auto l = (rovPos.X() - rovSatPos.X()) / rovSatDis - (rovPos.X() - rovRefSatPos.X()) / rovRefSatDis;
+				auto m = (rovPos.Y() - rovSatPos.Y()) / rovSatDis - (rovPos.Y() - rovRefSatPos.Y()) / rovRefSatDis;
+				auto n = (rovPos.Z() - rovSatPos.Z()) / rovSatDis - (rovPos.Z() - rovRefSatPos.Z()) / rovRefSatDis;
 				auto& types = SignalTypesOfSatelliteSystems.at(sat.System);
 				auto f1 = FrequencyOfSignalType.at(types[0]);
 				auto f2 = FrequencyOfSignalType.at(types[1]);
@@ -683,15 +680,16 @@ namespace RealTimeKinematic
 					B(rowStartIndex + i, 1) = m;
 					B(rowStartIndex + i, 2) = n;
 				}
-				auto& refSdObs = singleDifferenceObs.at(refSat);
-				auto L1 = sdObs.Data.at(types[0]).CarrierPhase - refSdObs.Data.at(types[0]).CarrierPhase;
-				auto L2 = sdObs.Data.at(types[1]).CarrierPhase - refSdObs.Data.at(types[1]).CarrierPhase;
+				auto& baseSdObs = singleDifferenceObs.at(refSat);
+				auto L1 = sdObs.Data.at(types[0]).CarrierPhase - baseSdObs.Data.at(types[0]).CarrierPhase;
+				auto L2 = sdObs.Data.at(types[1]).CarrierPhase - baseSdObs.Data.at(types[1]).CarrierPhase;
 				auto N1 = f(2 * satIndex, 0);
 				auto N2 = f(2 * satIndex + 1, 0);
-				auto& baseSatPos = refSppResult.SatelliteDatas.at(sat).Coord;
-				auto satBaseDis = CartCoordinate::Distance(basePos, baseSatPos);
-				auto refBaseDis = CartCoordinate::Distance(basePos, refPos);
-				auto rho = (satRovDis - refRovDis) - (satBaseDis - refBaseDis);
+				auto& baseRefSatPos = baseSppResult.SatelliteDatas.at(refSat).Coord;
+				auto& baseSatPos = baseSppResult.SatelliteDatas.at(sat).Coord;
+				auto baseSatDis = CartCoordinate::Distance(basePos, baseSatPos);
+				auto baseRefSatDis = CartCoordinate::Distance(basePos, baseRefSatPos);
+				auto rho = (rovSatDis - rovRefSatDis) - (baseSatDis - baseRefSatDis);
 				W(rowStartIndex, 0) = L1 - rho - lambda1 * N1;
 				W(rowStartIndex + 1, 0) = L2 - rho - lambda2 * N2;
 				auto sigmaL = sqrt(0.0005);
@@ -723,7 +721,7 @@ namespace RealTimeKinematic
 			if (Vector(X.GetColumn(0)).Norm() <= IterationThreshold)
 			{
 				rtkResult.IsFixed = true;
-				rtkResult.RovPos = rovPos;
+				//rtkResult.RovPos = rovPos;
 				rtkResult.Sigma = sqrt((W.Transpose() * P * W)(0, 0) / (2 * satNum - 3));
 				rtkResult.Pdop = sqrt(Q(0, 0) + Q(1, 1) + Q(2, 2));
 				delete[] QPtr, aPtr, F, s;
@@ -734,19 +732,19 @@ namespace RealTimeKinematic
 		return rtkResult;
 	}
 
-	std::optional<RtkResult> Solve(const std::map<Satellite, SatelliteObservation>& rovObservations, const std::map<Satellite, SatelliteObservation>& refObservations, const SinglePointPositioning::SppResult& rovSppResult, const SinglePointPositioning::SppResult& refSppResult)
+	std::optional<RtkResult> Solve(const std::map<Satellite, SatelliteObservation>& rovObservations, const std::map<Satellite, SatelliteObservation>& baseObservations, const SinglePointPositioning::SppResult& rovSppResult, const SinglePointPositioning::SppResult& baseSppResult)
 	{
-		auto sdObs = BuildSingleDifferenceObservations(rovSppResult.SatelliteDatas, refSppResult.SatelliteDatas, rovObservations, refObservations);
+		auto sdObs = BuildSingleDifferenceObservations(rovSppResult.SatelliteDatas, baseSppResult.SatelliteDatas, rovObservations, baseObservations);
 		static OutlierDetector sdObsDetector;
-		sdObs = sdObsDetector.Filter(refSppResult.Time, sdObs);
-		if (rovSppResult.State == false || refSppResult.State == false || sdObs.size() < 3)
+		sdObs = sdObsDetector.Filter(baseSppResult.Time, sdObs);
+		if (rovSppResult.State == false || baseSppResult.State == false || sdObs.size() < 3)
 			return std::nullopt;
 		auto refSats = FindReferenceSatellite(sdObs);
 		if (refSats.size() < 1)
 			return std::nullopt;
-		auto rtkResultOrNull = RtkFloat(sdObs, refSppResult, rovSppResult, refSats);
+		auto rtkResultOrNull = RtkFloat(sdObs, baseSppResult, rovSppResult, refSats);
 		if (!rtkResultOrNull.has_value())
 			return std::nullopt;
-		return RtkFixed(rtkResultOrNull.value(), sdObs, refSppResult, rovSppResult, refSats);
+		return RtkFixed(rtkResultOrNull.value(), sdObs, baseSppResult, rovSppResult, refSats);
 	}
 }

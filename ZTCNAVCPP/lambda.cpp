@@ -3,7 +3,7 @@
 *
 *          Copyright (C) 2007-2008 by T.TAKASU, All rights reserved.
 *
-* reference :
+* baseerence :
 *     [1] P.J.G.Teunissen, The least-square ambiguity decorrelation adjustment:
 *         a method for fast GPS ambiguity estimation, J.Geodesy, Vol.70, 65-82,
 *         1995
@@ -71,7 +71,7 @@ void perm(int n, double *L, double *D, int j, double del, double *Z)
     for (k=0;k<n;k++) SWAP(Z[k+j*n],Z[k+(j+1)*n]);
 }
 
-/* lambda reduction (z=Z'*a, Qz=Z'*Q*Z=L'*diag(D)*L) (ref.[1]) ---------------*/
+/* lambda reduction (z=Z'*a, Qz=Z'*Q*Z=L'*diag(D)*L) (base.[1]) ---------------*/
 void reduction(int n, double *L, double *D, double *Z)
 {
 	int i, j, k;
@@ -89,7 +89,7 @@ void reduction(int n, double *L, double *D, double *Z)
 	}
 }
 
-/* modified lambda (mlambda) search (ref. [2]) -------------------------------*/
+/* modified lambda (mlambda) search (base. [2]) -------------------------------*/
 int search(int n, int m, const double *L, const double *D,
                   const double *zs, double *zn, double *s)
 {
@@ -165,8 +165,8 @@ int search(int n, int m, const double *L, const double *D,
     return 0;
 }
 /* lambda/mlambda integer least-square estimation ------------------------------
-* integer least-square estimation. reduction is performed by lambda (ref.[1]),
-* and search by mlambda (ref.[2]).
+* integer least-square estimation. reduction is performed by lambda (base.[1]),
+* and search by mlambda (base.[2]).
 * args   : int    n      I  number of float parameters //浮点解个数
 *          int    m      I  number of fixed solutions  //固定解组数
 *          double *a     I  float parameters (n x 1)   //浮点解

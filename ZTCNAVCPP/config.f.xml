@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--ZTCNAVCPP 配置文件-->
+<Config>
+    <!--Spp/Rtk-->
+    <SolutionMode>Rtk</SolutionMode>
+    <!--Mode=File/Socket-->
+    <SourceDictionary Mode="File">
+        <!--Key=Rover/Base,内部文本是一个文件路径或IP地址:端口号，例如：127.0.0.1:5000-->
+        <DataSource Key="Rover">D:\RemeaMiku study\course in progress\oem719-202203031500-1.bin</DataSource>
+        <DataSource Key="Base">D:\RemeaMiku study\course in progress\oem719-202203031500-2.bin</DataSource>
+    </SourceDictionary>
+    <ParameterDictionary>
+        <Parameter Key="Base ECEF X Coord">-2267804.5263</Parameter>
+        <Parameter Key="Base ECEF Y Coord">5009342.3723</Parameter>
+        <Parameter Key="Base ECEF Z Coord">3220991.8632</Parameter>
+        <Parameter Key="Satellite Altitude Angle Threshold">15</Parameter>
+    </ParameterDictionary>
+    <TargetDictionary>
+        <!--Key=Result/Log,内部文本是一个文件路径或Auto以自动根据运行时刻在当前目录下生成csv文件，例如：20230309083139.csv-->
+        <Target Key="Result">Auto</Target>
+        <Target Key="Log">Auto</Target>
+    </TargetDictionary>
+</Config>

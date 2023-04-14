@@ -146,12 +146,17 @@
     <ClCompile Include="OEMRange.cpp" />
     <ClCompile Include="OutlierDetector.cpp" />
     <ClCompile Include="Satellite.cpp" />
+    <ClCompile Include="tinystr.cpp" />
+    <ClCompile Include="tinyxml.cpp" />
+    <ClCompile Include="tinyxmlerror.cpp" />
+    <ClCompile Include="tinyxmlparser.cpp" />
     <ClCompile Include="Vector.cpp" />
     <ClCompile Include="CartCoordinate.cpp" />
     <ClCompile Include="ZTCNAVCPP.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Angle.hpp" />
+    <ClInclude Include="Config.hpp" />
     <ClInclude Include="DateTime.h" />
     <ClInclude Include="GeoCoordinate.h" />
     <ClInclude Include="Coordinate.h" />
@@ -174,6 +179,8 @@
     <ClInclude Include="Positioning.hpp" />
     <ClInclude Include="Satellite.h" />
     <ClInclude Include="Socket.hpp" />
+    <ClInclude Include="tinystr.h" />
+    <ClInclude Include="tinyxml.h" />
     <ClInclude Include="Vector.h" />
     <ClInclude Include="CartCoordinate.h" />
   </ItemGroup>

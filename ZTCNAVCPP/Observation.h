@@ -97,10 +97,10 @@ public:
 //public:
 //	GpsTime Time;
 //	std::map<Satellite, SatelliteObservation> Observations;
-//	SingleDifferenceObservation(const GpsTime& time, const std::map<Satellite, SatelliteObservation>& rovObservations, const std::map<Satellite, SatelliteObservation>& refObservations)
+//	SingleDifferenceObservation(const GpsTime& time, const std::map<Satellite, SatelliteObservation>& rovObservations, const std::map<Satellite, SatelliteObservation>& baseObservations)
 //	{
 //		Time = time;
-//		for (auto& [satellite, refObs] : refObservations)
+//		for (auto& [satellite, baseObs] : baseObservations)
 //		{
 //			if (!rovObservations.contains(satellite))
 //				continue;
@@ -112,12 +112,12 @@ public:
 //			for (auto& signalType : signalTypes)
 //			{
 //				auto& rovData = rovObs.Data.at(signalType);
-//				auto& refData = refObs.Data.at(signalType);
+//				auto& baseData = baseObs.Data.at(signalType);
 //				satObservation.Data[signalType] = ObservationData
 //				{
-//					rovData.Pseudorange - refData.Pseudorange,
+//					rovData.Pseudorange - baseData.Pseudorange,
 //					0,
-//					rovData.CarrierPhase - refData.CarrierPhase,
+//					rovData.CarrierPhase - baseData.CarrierPhase,
 //					0,
 //					0
 //				};

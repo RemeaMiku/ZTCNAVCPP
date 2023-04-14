@@ -1,117 +1,104 @@
 ﻿// ZTCNAVCPP.cpp : 此文件包含 "main" 函数。程序执行将在此处开始并结束。
 // 编译时请将C++语言版本设置为C++20及以上
 
-#include <filesystem>
 #include "OEMDecoder.hpp"
 #include "OutlierDetector.h"
 #include "Positioning.hpp"
 #include "Socket.hpp"
+#include "Config.hpp"
 
 using namespace std;
 using namespace std::filesystem;
 using namespace std::chrono;
-//读取文件路径
-path inputPath;
-//输出文件路径
-path outputPath;
-
-//输出标题
-string title { "NUMBER STATUS GPST_WN GPST_SOW POS_X POS_Y POS_Z POS_B POS_L POS_H VEL_X VEL_Y VEL_Z CLKVELERR PDOP SPPSIGAMA SPVSIGMA SYS:SATNUM SYS:CLKERR" };
-
-void RunByFile();
-void RunBySocket();
 
 enum SynchronousState
 {
 	Synchronous,
-	RefBehindRov,
-	RovBehindRef
+	BaseIsNewer,
+	RoverIsNewer
 };
 
-SynchronousState GetSynchronousState(const GpsTime& rovTime, const GpsTime& refTime)
+SynchronousState GetSynchronousState(const GpsTime& rovTime, const GpsTime& baseTime)
 {
-	auto offSet = refTime - rovTime;
+	auto offSet = baseTime - rovTime;
 	if (offSet > 0.1)
-		return RefBehindRov;
+		return BaseIsNewer;
 	if (offSet < -0.1)
-		return RovBehindRef;
+		return RoverIsNewer;
 	return Synchronous;
 }
 
-int main()
+void DoRtkByFile(const path& basePath, const path& rovPath, path& resPath)
 {
-	//关闭stdio同步，打消缓存
-	ios::sync_with_stdio(false);
-	//关闭cin和cout绑定
-	cin.tie(0);
-	cout.tie(0);
-	RunBySocket();
-}
-
-void RunByFile()
-{
-	//auto refPath = "D:\\RemeaMiku study\\course in progress\\卫星导航算法与程序设计\\short-baseline\\oem719-202203170900-1.bin";
-	//auto rovPath = "D:\\RemeaMiku study\\course in progress\\卫星导航算法与程序设计\\short-baseline\\oem719-202203170900-2.bin";
-	auto refPath = "D:\\RemeaMiku study\\course in progress\\卫星导航算法与程序设计\\Zero-baseline\\oem719-202203031500-1.bin";
-	auto rovPath = "D:\\RemeaMiku study\\course in progress\\卫星导航算法与程序设计\\Zero-baseline\\oem719-202203031500-2.bin";
-
+	if (!exists(basePath) || !exists(rovPath))
+	{
+		cout << "输入路径有误\n";
+		return;
+	}
 	ifstream rovStream { rovPath,ios::binary | ios::in };
-	ifstream refStream { refPath,ios::binary | ios::in };
-
+	ifstream baseStream { basePath,ios::binary | ios::in };
+	ofstream resStream { resPath,ios::out,ios::trunc };
+	if (!resStream)
+	{
+		cout << "输出路径有误\n";
+		return;
+	}
 	OEMDecoder<ifstream> decoder;
 	OutlierDetector rovDetector;
-	OutlierDetector refDetector;
-	auto rtkNum = 0, sppNum = 0;
+	OutlierDetector baseDetector;
 	auto rovRangeOrNull = decoder.Read(rovStream);
-	auto refRangeOrNull = decoder.Read(refStream);
-	auto state = 0;
+	auto baseRangeOrNull = decoder.Read(baseStream);
+	auto state = Synchronous;
+	string title { "NO. MODE STATUS GPST_WN GPST_SOW ROV_X ROV_Y ROV_Z ROV_B ROV_L ROV_H BASELINE_X BASELINE_Y BASELINE_Z RATIO PDOP SIGMA" };
+	cout << title << endl;
+	resStream << title << endl;
+	auto totalNum = 0;
 	while (rovRangeOrNull.has_value())
 	{
+		totalNum++;
 		auto& rovRange = rovRangeOrNull.value();
-		if (state != 1)
-			refRangeOrNull = decoder.Read(refStream);
-		while (refRangeOrNull.has_value())
+		if (state != BaseIsNewer)
+			baseRangeOrNull = decoder.Read(baseStream);
+		while (baseRangeOrNull.has_value())
 		{
-			auto& refRange = refRangeOrNull.value();
+			auto& baseRange = baseRangeOrNull.value();
 			auto rovTime = rovRange.Header.Time;
-			auto refTime = refRange.Header.Time;
-			state = GetSynchronousState(rovTime, refTime);
-			if (state == 0)
+			auto baseTime = baseRange.Header.Time;
+			state = GetSynchronousState(rovTime, baseTime);
+			if (state == Synchronous)
 			{
 				auto rovObservations = rovDetector.Filter(rovTime, rovRange.ObservationOf);
-				auto refObservations = refDetector.Filter(refTime, refRange.ObservationOf);
+				auto baseObservations = baseDetector.Filter(baseTime, baseRange.ObservationOf);
 				auto rovSppResult = SinglePointPositioning::Solve(rovTime, rovObservations);
-				auto refSppResult = SinglePointPositioning::Solve(refTime, refObservations);
-				if (rovSppResult.State == false || refSppResult.State == false)
-				{
-					cout << "F" << endl;
-					break;
-				}
-				auto rtkResultOrNull = RealTimeKinematic::Solve(rovObservations, refObservations, rovSppResult, refSppResult);
+				auto baseSppResult = SinglePointPositioning::Solve(baseTime, baseObservations);
+				auto rtkResultOrNull = RealTimeKinematic::Solve(rovObservations, baseObservations, rovSppResult, baseSppResult);
 				if (!rtkResultOrNull.has_value())
 				{
-					cout << "F" << endl;
+					cout << format("{} RTK NORES\n", totalNum);
+					resStream << format("{} RTK NORES\n", totalNum);
 					break;
 				}
-				cout << rtkResultOrNull.value() << endl;
+				auto& rtkRes = rtkResultOrNull.value();
+				cout << format("{} RTK ", totalNum) << rtkRes << '\n';
+				resStream << format("{} RTK ", totalNum) << rtkRes << '\n';
 				break;
 			}
-			if (state == 1)
+			if (state == BaseIsNewer)
 			{
-				cout << "SPP" << endl;
+				cout << format("{} SPP\n", totalNum);
+				resStream << format("{} SPP\n", totalNum);
 				break;
 			}
-			if (state == -1)
-			{
-				refRangeOrNull = decoder.Read(refStream);
-			}
+			if (state == RoverIsNewer)
+				baseRangeOrNull = decoder.Read(baseStream);
 		}
 		rovRangeOrNull = decoder.Read(rovStream);
 	}
+	cout << format("解算完成，共{}历元\n", totalNum);
 }
 
 unsigned char rovBuf[20480];
-unsigned char refBuf[20480];
+unsigned char baseBuf[20480];
 
 void UCharBufferToStream(unsigned char* buf, int len, stringstream& stream)
 {
@@ -123,15 +110,39 @@ void UCharBufferToStream(unsigned char* buf, int len, stringstream& stream)
 	return;
 }
 
-void RunBySocket()
+tuple<string, unsigned short> StringToIpWithPort(const string& str)
 {
-	stringstream rovStream, refStream;
-	SOCKET rovListener, refListener;
-	OpenSocket(refListener, "47.114.134.129", 7190);
-	OpenSocket(rovListener, "8.140.46.126", 5002);
+	auto delimiter = ':';
+	auto size = str.size();
+	auto pos = str.find(delimiter);
+	auto ip = str.substr(0, pos);
+	auto port = stoi(str.substr(pos + 1, size - pos));
+	return { ip,port };
+}
+
+void DoRtkBySocket(const string& baseAddress, const string& rovAddress, const path& resPath)
+{
+	auto [baseIp, basePort] = StringToIpWithPort(baseAddress);
+	auto [rovIp, rovPort] = StringToIpWithPort(rovAddress);
+	ofstream resStream { resPath,ios::out };
+	if (!resStream)
+	{
+		cout << "输出路径有误\n";
+		return;
+	}
+	string title { "NO. MODE STATUS GPST_WN GPST_SOW ROV_X ROV_Y ROV_Z ROV_B ROV_L ROV_H BASELINE_X BASELINE_Y BASELINE_Z RATIO PDOP SIGMA" };
+	cout << title << '\n';
+	resStream << title << '\n';
+	stringstream rovStream, baseStream;
+	SOCKET rovListener, baseListener;
+	if (!OpenSocket(baseListener, baseIp.c_str(), basePort) || !OpenSocket(rovListener, rovIp.c_str(), rovPort))
+	{
+		cout << "输入地址有误\n";
+		return;
+	}
 	OEMDecoder<stringstream> decoder;
 	OutlierDetector rovDetector;
-	OutlierDetector refDetector;
+	OutlierDetector baseDetector;
 	auto totalNum = 0;
 	auto rtkSolvedNum = 0;
 	while (true)
@@ -139,18 +150,18 @@ void RunBySocket()
 		totalNum++;
 		auto start = utc_clock::now();
 		auto rovMsgLen = recv(rovListener, (char*)rovBuf, 20480, 0);
-		auto refMsgLen = recv(refListener, (char*)refBuf, 20480, 0);
+		auto baseMsgLen = recv(baseListener, (char*)baseBuf, 20480, 0);
 		cout << format("RovRecv:{}\n", rovMsgLen);
-		cout << format("RefRecv:{}\n", refMsgLen);
+		cout << format("RefRecv:{}\n", baseMsgLen);
 		UCharBufferToStream(rovBuf, rovMsgLen, rovStream);
-		UCharBufferToStream(refBuf, refMsgLen, refStream);
+		UCharBufferToStream(baseBuf, baseMsgLen, baseStream);
 		auto rovRangeOrNull = decoder.Read(rovStream);
-		auto refRangeOrNull = decoder.Read(refStream);
+		auto baseRangeOrNull = decoder.Read(baseStream);
 		auto hasRov = false, hasRef = false;
-		OEMRANGE rovRange, refRange;
-		GpsTime rovTime, refTime;
-		map<Satellite, SatelliteObservation> rovObs, refObs;
-		SinglePointPositioning::SppResult rovSppRes, refSppRes;
+		OEMRANGE rovRange, baseRange;
+		GpsTime rovTime, baseTime;
+		map<Satellite, SatelliteObservation> rovObs, baseObs;
+		SinglePointPositioning::SppResult rovSppRes, baseSppRes;
 		if (rovRangeOrNull.has_value())
 		{
 			hasRov = true;
@@ -160,51 +171,69 @@ void RunBySocket()
 			rovSppRes = SinglePointPositioning::Solve(rovTime, rovObs);
 			cout << "RovRange ";
 		}
-		if (refRangeOrNull.has_value())
+		if (baseRangeOrNull.has_value())
 		{
 			hasRef = true;
-			refRange = refRangeOrNull.value();
-			refTime = refRange.Header.Time;
-			refObs = refDetector.Filter(refTime, refRange.ObservationOf);
-			refSppRes = SinglePointPositioning::Solve(refTime, refObs);
+			baseRange = baseRangeOrNull.value();
+			baseTime = baseRange.Header.Time;
+			baseObs = baseDetector.Filter(baseTime, baseRange.ObservationOf);
+			baseSppRes = SinglePointPositioning::Solve(baseTime, baseObs);
 			cout << "RefRange ";
 		}
 		if (hasRov && hasRef)
 		{
-			auto state = GetSynchronousState(rovTime, refTime);
+			auto state = GetSynchronousState(rovTime, baseTime);
 			switch (state)
 			{
 				case Synchronous:
 					cout << "TryRtk:";
 					{
-						auto rtkResultOrNull = RealTimeKinematic::Solve(rovObs, refObs, rovSppRes, refSppRes);
+						auto rtkResultOrNull = RealTimeKinematic::Solve(rovObs, baseObs, rovSppRes, baseSppRes);
 						if (!rtkResultOrNull.has_value())
 						{
-							cout << "F";
+							cout << format("{} RTK NORES\n", totalNum);
+							resStream << format("{} RTK NORES\n", totalNum);
 							break;
 						}
 						rtkSolvedNum++;
-						cout << rtkResultOrNull.value();
+						auto& rtkRes = rtkResultOrNull.value();
+						cout << format("{} RTK ", totalNum) << rtkRes << '\n';
+						resStream << format("{} RTK ", totalNum) << rtkRes << '\n';
 					}
 					break;
-				case RefBehindRov:
-					cout << "RefBehind TrySpp:";
+				case BaseIsNewer:
+					cout << format("{} SPP\n", totalNum);
+					resStream << format("{} SPP\n", totalNum);
 					break;
-				case RovBehindRef:
-					cout << "RovBehind TrySpp:";
+				case RoverIsNewer:
+					cout << format("{} SPP\n", totalNum);
+					resStream << format("{} SPP\n", totalNum);
 					break;
 				default:
 					break;
 			}
 		}
-		if (totalNum % 100 == 0)
+		else
+		{
+			if (hasRov)
+			{
+				resStream << format("{} SPP\n", totalNum);
+			}
+			else
+			{
+				resStream << format("{} NODATA\n", totalNum);
+			}
+		}
+		if (totalNum % 200 == 0)
 		{
 			stringstream tempRovStream;
 			stringstream tempRefStream;
 			tempRovStream << rovStream.rdbuf();
-			tempRefStream << refStream.rdbuf();
+			tempRefStream << baseStream.rdbuf();
 			rovStream = move(tempRovStream);
-			refStream = move(tempRefStream);
+			baseStream = move(tempRefStream);
+			system("cls");
+			cout << title << '\n';
 		}
 		auto end = utc_clock::now();
 		auto duration = duration_cast<milliseconds>(end - start).count();
@@ -213,3 +242,55 @@ void RunBySocket()
 			Sleep(1000 - duration);
 	}
 }
+
+void PrintConfig(Config& config)
+{
+	cout << "配置信息如下\n";
+	cout << format("SolutionMode:{}\n", config.SolutionMode);
+	cout << format("Sources:{}\n", config.SourceMode);
+	for (auto& dataSource : config.SourceDictionary)
+		cout << format("{}:{}\n", dataSource.first, dataSource.second);
+	cout << "Parameters\n";
+	for (auto& dataSource : config.ParameterDictionary)
+		cout << format("{}:{}\n", dataSource.first, dataSource.second);
+	cout << "Targets\n";
+	for (auto& dataSource : config.TargetDictionary)
+		cout << format("{}:{}\n", dataSource.first, dataSource.second.string());
+	system("pause");
+}
+
+int main()
+{
+	ios::sync_with_stdio(false);
+	cin.tie(0);
+	cout.tie(0);
+	auto configOrNull = ReadConfigFromXml("config.xml");
+	if (configOrNull == nullopt)
+	{
+		cerr << "配置文件读取失败\n";
+		exit(1);
+	}
+	auto& config = configOrNull.value();
+	PrintConfig(config);
+	if (config.SolutionMode == "Rtk")
+	{
+		BasePos = { config.ParameterDictionary["Base ECEF X Coord"],config.ParameterDictionary["Base ECEF Y Coord"] ,config.ParameterDictionary["Base ECEF Z Coord"] };
+		auto& baseSource = config.SourceDictionary["Base"];
+		auto& rovSource = config.SourceDictionary["Rover"];
+		auto& resTarget = config.TargetDictionary["Result"];
+		auto& logTarget = config.SourceDictionary["Log"];
+		if (resTarget == "Auto")
+			resTarget = format("{:%Y%m%d%H%M%S}.csv", time_point_cast<seconds>(utc_clock::now()));
+		if (config.SourceMode == "File")
+			DoRtkByFile(baseSource, rovSource, resTarget);
+		if (config.SourceMode == "Socket")
+			DoRtkBySocket(baseSource, rovSource, resTarget);
+	}
+	if (config.SolutionMode == "Spp")
+	{
+		cout << "DoSpp\n";
+	}
+	cout << "解算模式有误\n";
+}
+
+

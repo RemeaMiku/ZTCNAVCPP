@@ -25,15 +25,15 @@ void gauss(int n, double* L, double* Z, int i, int j);
 /* permutations --------------------------------------------------------------*/
 void perm(int n, double* L, double* D, int j, double del, double* Z);
 
-/* lambda reduction (z=Z'*a, Qz=Z'*Q*Z=L'*diag(D)*L) (ref.[1]) ---------------*/
+/* lambda reduction (z=Z'*a, Qz=Z'*Q*Z=L'*diag(D)*L) (base.[1]) ---------------*/
 void reduction(int n, double* L, double* D, double* Z);
 
-/* modified lambda (mlambda) search (ref. [2]) -------------------------------*/
+/* modified lambda (mlambda) search (base. [2]) -------------------------------*/
 int search(int n, int m, const double* L, const double* D,
-    const double* zs, double* zn, double* s);
+		   const double* zs, double* zn, double* s);
 /* lambda/mlambda integer least-square estimation ------------------------------
-* integer least-square estimation. reduction is performed by lambda (ref.[1]),
-* and search by mlambda (ref.[2]).
+* integer least-square estimation. reduction is performed by lambda (base.[1]),
+* and search by mlambda (base.[2]).
 * args   : int    n      I  number of float parameters
 *          int    m      I  number of fixed solutions
 *          double *a     I  float parameters (n x 1)
@@ -72,7 +72,7 @@ int MatrixInv(int n, double a[], double b[]);
 
 ****************************************************************************/
 
-int MatrixMultiply(const int m1, const int n1, const int m2, const int n2,const double* A,const double* B, double* C);
+int MatrixMultiply(const int m1, const int n1, const int m2, const int n2, const double* A, const double* B, double* C);
 
 
 #endif // !lambda_H
