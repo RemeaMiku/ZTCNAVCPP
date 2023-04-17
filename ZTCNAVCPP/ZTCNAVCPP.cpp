@@ -157,7 +157,7 @@ void DoRtkBySocket(const string& baseAddress, const string& rovAddress, const pa
 		UCharBufferToStream(baseBuf, baseMsgLen, baseStream);
 		auto rovRangeOrNull = decoder.Read(rovStream);
 		auto baseRangeOrNull = decoder.Read(baseStream);
-		auto hasRov = false, hasRef = false;
+		auto hasRov = false, hasBase = false;
 		OEMRANGE rovRange, baseRange;
 		GpsTime rovTime, baseTime;
 		map<Satellite, SatelliteObservation> rovObs, baseObs;
@@ -173,14 +173,14 @@ void DoRtkBySocket(const string& baseAddress, const string& rovAddress, const pa
 		}
 		if (baseRangeOrNull.has_value())
 		{
-			hasRef = true;
+			hasBase = true;
 			baseRange = baseRangeOrNull.value();
 			baseTime = baseRange.Header.Time;
 			baseObs = baseDetector.Filter(baseTime, baseRange.ObservationOf);
 			baseSppRes = SinglePointPositioning::Solve(baseTime, baseObs);
 			cout << "RefRange ";
 		}
-		if (hasRov && hasRef)
+		if (hasRov && hasBase)
 		{
 			auto state = GetSynchronousState(rovTime, baseTime);
 			switch (state)
@@ -227,11 +227,11 @@ void DoRtkBySocket(const string& baseAddress, const string& rovAddress, const pa
 		if (totalNum % 200 == 0)
 		{
 			stringstream tempRovStream;
-			stringstream tempRefStream;
+			stringstream tempBaseStream;
 			tempRovStream << rovStream.rdbuf();
-			tempRefStream << baseStream.rdbuf();
+			tempBaseStream << baseStream.rdbuf();
 			rovStream = move(tempRovStream);
-			baseStream = move(tempRefStream);
+			baseStream = move(tempBaseStream);
 			system("cls");
 			cout << title << '\n';
 		}
