@@ -4,10 +4,13 @@ using namespace std;
 
 std::map<Satellite, SatelliteObservation> OutlierDetector::Filter(const GpsTime& time, const std::map<Satellite, SatelliteObservation>& observations)
 {
+	if (abs(_lastTime - time) <= DBL_EPSILON)
+		return _lastRes;
 	//判断观测连续性
 	if (time - _lastTime >= (_interval + DBL_EPSILON))
 	{
 		_lastTime = time;
+		_lastRes = {};
 		return{};
 	}
 	map<Satellite, SatelliteObservation> res;
@@ -31,6 +34,7 @@ std::map<Satellite, SatelliteObservation> OutlierDetector::Filter(const GpsTime&
 		}
 	}
 	_lastTime = time;
+	_lastRes = res;
 	return res;
 }
 

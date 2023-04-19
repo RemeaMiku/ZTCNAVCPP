@@ -97,8 +97,8 @@ void DoRtkByFile(const path& basePath, const path& rovPath, path& resPath)
 	cout << format("解算完成，共{}历元\n", totalNum);
 }
 
-unsigned char rovBuf[20480];
-unsigned char baseBuf[20480];
+unsigned char rovBuf[40960];
+unsigned char baseBuf[40960];
 
 void UCharBufferToStream(unsigned char* buf, int len, stringstream& stream)
 {
@@ -145,18 +145,23 @@ void DoRtkBySocket(const string& baseAddress, const string& rovAddress, const pa
 	OutlierDetector baseDetector;
 	auto totalNum = 0;
 	auto rtkSolvedNum = 0;
+	auto state = Synchronous;
+	optional<OEMRANGE> rovRangeOrNull = nullopt;
+	optional<OEMRANGE> baseRangeOrNull = nullopt;
 	while (true)
 	{
 		totalNum++;
 		auto start = utc_clock::now();
-		auto rovMsgLen = recv(rovListener, (char*)rovBuf, 20480, 0);
-		auto baseMsgLen = recv(baseListener, (char*)baseBuf, 20480, 0);
+		auto rovMsgLen = recv(rovListener, (char*)rovBuf, 40960, 0);
+		auto baseMsgLen = recv(baseListener, (char*)baseBuf, 40960, 0);
 		cout << format("RovRecv:{}\n", rovMsgLen);
 		cout << format("RefRecv:{}\n", baseMsgLen);
 		UCharBufferToStream(rovBuf, rovMsgLen, rovStream);
 		UCharBufferToStream(baseBuf, baseMsgLen, baseStream);
-		auto rovRangeOrNull = decoder.Read(rovStream);
-		auto baseRangeOrNull = decoder.Read(baseStream);
+		if (state != RoverIsNewer)
+			rovRangeOrNull = decoder.Read(rovStream);
+		if (state != BaseIsNewer)
+			baseRangeOrNull = decoder.Read(baseStream);
 		auto hasRov = false, hasBase = false;
 		OEMRANGE rovRange, baseRange;
 		GpsTime rovTime, baseTime;
@@ -182,7 +187,7 @@ void DoRtkBySocket(const string& baseAddress, const string& rovAddress, const pa
 		}
 		if (hasRov && hasBase)
 		{
-			auto state = GetSynchronousState(rovTime, baseTime);
+			state = GetSynchronousState(rovTime, baseTime);
 			switch (state)
 			{
 				case Synchronous:
@@ -292,5 +297,4 @@ int main()
 	}
 	cout << "解算模式有误\n";
 }
-
 
