@@ -119,6 +119,7 @@ namespace SinglePointPositioning
 		CartCoordinate CartCoord;
 		//测站WGS-84坐标
 		GeoCoordinate GeoCoord;
+
 		//速度向量
 		Vector Velocity;
 		double Pdop;

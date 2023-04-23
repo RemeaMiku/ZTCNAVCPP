@@ -57,20 +57,20 @@ void DoRtkByFile(const path& basePath, const path& rovPath, path& resPath)
 	{
 		totalNum++;
 		auto& rovRange = rovRangeOrNull.value();
+		auto rovTime = rovRange.Header.Time;
+		auto rovObservations = rovDetector.Filter(rovTime, rovRange.ObservationOf);
+		auto rovSppResult = SinglePointPositioning::Solve(rovTime, rovObservations);
 		if (state != BaseIsNewer)
 			baseRangeOrNull = decoder.Read(baseStream);
 		while (baseRangeOrNull.has_value())
 		{
 			auto& baseRange = baseRangeOrNull.value();
-			auto rovTime = rovRange.Header.Time;
 			auto baseTime = baseRange.Header.Time;
+			auto baseObservations = baseDetector.Filter(baseTime, baseRange.ObservationOf);
+			auto baseSppResult = SinglePointPositioning::Solve(baseTime, baseObservations);
 			state = GetSynchronousState(rovTime, baseTime);
 			if (state == Synchronous)
 			{
-				auto rovObservations = rovDetector.Filter(rovTime, rovRange.ObservationOf);
-				auto baseObservations = baseDetector.Filter(baseTime, baseRange.ObservationOf);
-				auto rovSppResult = SinglePointPositioning::Solve(rovTime, rovObservations);
-				auto baseSppResult = SinglePointPositioning::Solve(baseTime, baseObservations);
 				auto rtkResultOrNull = RealTimeKinematic::Solve(rovObservations, baseObservations, rovSppResult, baseSppResult);
 				if (!rtkResultOrNull.has_value())
 				{
