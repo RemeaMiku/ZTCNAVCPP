@@ -6,7 +6,7 @@
 bool OpenSocket(SOCKET& sock, const char IP[], const unsigned short Port)
 {
 	WSADATA wsaData;
-	SOCKADDR_IN addrSrv{};
+	SOCKADDR_IN addrSrv {};
 
 	if (!WSAStartup(MAKEWORD(1, 1), &wsaData))
 	{

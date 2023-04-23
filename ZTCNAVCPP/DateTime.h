@@ -13,10 +13,14 @@ class DateTime
 public:
 	DateTime() = default;
 	DateTime(const int& y, const unsigned& mon, const unsigned& d, const unsigned& h, const unsigned& min, const double& s);
-	inline constexpr DateTime(const utc& utcTime) noexcept :_time(utcTime) {}
+	inline constexpr DateTime(const utc& utcTime) noexcept :_time(utcTime)
+	{}
 	GpsTime ToGpsTime() const noexcept;
 	static DateTime FromGpsTime(const GpsTime& gpsTime) noexcept;
-	inline std::string ToString() const noexcept { return std::format("{:%Y/%m/%d %T}", _time); }
+	inline std::string ToString() const noexcept
+	{
+		return std::format("{:%Y/%m/%d %T}", _time);
+	}
 private:
 	utc _time;
 };

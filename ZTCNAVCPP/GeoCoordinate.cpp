@@ -3,11 +3,14 @@
 
 using namespace std;
 
-GeoCoordinate::GeoCoordinate() noexcept :Coordinate() {}
+GeoCoordinate::GeoCoordinate() noexcept :Coordinate()
+{}
 
-GeoCoordinate::GeoCoordinate(double b, double l, double h) noexcept :Coordinate(b, l, h) {}
+GeoCoordinate::GeoCoordinate(double b, double l, double h) noexcept :Coordinate(b, l, h)
+{}
 
-GeoCoordinate::GeoCoordinate(const std::vector<double>& blh) :Coordinate(blh) {}
+GeoCoordinate::GeoCoordinate(const std::vector<double>& blh) :Coordinate(blh)
+{}
 
 string GeoCoordinate::ToString() const noexcept
 {

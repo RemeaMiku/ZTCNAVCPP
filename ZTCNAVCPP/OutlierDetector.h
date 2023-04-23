@@ -18,4 +18,3 @@ private:
 	inline static constexpr double _dGFLimit { 0.05 };
 	inline static constexpr double _dMWLimit { 2.0 };
 };
-

@@ -30,4 +30,3 @@ private:
 	unsigned int _week;
 	double _second;
 };
-

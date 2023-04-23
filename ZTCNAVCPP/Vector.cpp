@@ -4,17 +4,20 @@ using namespace std;
 using vec = vector<double>;
 using cvec = const vec&;
 
-Vector::Vector() :_elements(), Dimension(0) {}
+Vector::Vector() :_elements(), Dimension(0)
+{}
 
-Vector::Vector(int n) :_elements(n, 0), Dimension(n) {}
+Vector::Vector(int n) :_elements(n, 0), Dimension(n)
+{}
 
-Vector::Vector(const vector<double>& vec) :_elements(vec), Dimension(static_cast<int>(vec.size())) {}
+Vector::Vector(const vector<double>& vec) :_elements(vec), Dimension(static_cast<int>(vec.size()))
+{}
 
 double Vector::operator *(const Vector& vector2) const
 {
 	if (Dimension == vector2.Dimension)
 	{
-		double res{ 0 };
+		double res { 0 };
 		for (int i = 0; i < Dimension; ++i)
 		{
 			res += _elements[i] * vector2[i];
@@ -93,7 +96,7 @@ Vector Vector::operator - (const Vector& vector2) const
 
 double Vector::Norm() const noexcept
 {
-	double sum{ 0 };
+	double sum { 0 };
 	for (auto& element : _elements)
 	{
 		sum += pow(element, 2);
@@ -108,7 +111,7 @@ Vector Vector::Unitization() const noexcept
 
 string Vector::ToString() const noexcept
 {
-	string res{ "" };
+	string res { "" };
 	for (auto& element : _elements)
 	{
 		res += format("{:.4f} ", element);

@@ -94,7 +94,6 @@ void Matrix::SetRow(int i, const std::vector<double>& row)
 	}
 }
 
-
 Matrix Matrix::operator+(const Matrix& matrix2) const
 {
 	if (_rows == matrix2._rows && _columns == matrix2._columns)
@@ -203,9 +202,7 @@ Matrix Matrix::operator/(const Matrix& matrix2) const
 
 Matrix Matrix::operator/(double num) const
 {
-
 	return *this * (1 / num);
-
 }
 
 Matrix Matrix::Transpose() const noexcept
@@ -227,16 +224,19 @@ Matrix Matrix::Inverse() const
 	{
 		Matrix mat { _elements };
 		Matrix res { Identity(_rows) };
+
 		//变换得到右上三角矩阵
 		for (int rowIndex = 0; rowIndex < _rows - 1; ++rowIndex)
 		{
 			if (abs(mat[rowIndex][rowIndex]) <= 1E-6)
+
 				//主对角元素为0，向下查找换行
 			{
 				auto isSwaped { false };
 				for (int rowIndex2 = rowIndex + 1; rowIndex2 < _rows; ++rowIndex2)
 				{
 					if (abs(mat[rowIndex2][rowIndex]) > 1E-6)
+
 						//换行
 					{
 						SwapRow(mat, rowIndex, rowIndex2);
@@ -250,11 +250,14 @@ Matrix Matrix::Inverse() const
 					throw "矩阵不满秩,无法求逆";
 				}
 			}
+
 			//换行后主对角线元素
 			double diag { mat[rowIndex][rowIndex] };
+
 			//使主对角线元素化为1
 			RowTimes(mat, rowIndex, 1 / diag);
 			RowTimes(res, rowIndex, 1 / diag);
+
 			//下面的行减去该行对应列的倍数
 			for (int rowIndex2 = rowIndex + 1; rowIndex2 < _rows; ++rowIndex2)
 			{
@@ -264,11 +267,13 @@ Matrix Matrix::Inverse() const
 				RowTimesAdd(res, rowIndex2, -d, rowIndex);
 			}
 		}
+
 		//检查右下角元素
 		if (abs(mat[_rows - 1][static_cast<size_t>(_rows - 1)]) > DBL_EPSILON)
 		{
 			//右下角元素设置为1
 			RowTimes(res, _rows - 1, 1 / mat[_rows - 1][static_cast<size_t>(_rows - 1)]);
+
 			//从下往上相减，得到单位矩阵
 			for (int rowIndex = _rows - 1; rowIndex > 0; --rowIndex)
 			{
@@ -304,16 +309,19 @@ double Matrix::Determinant(const Matrix& matrix)
 			return mat[0][0] * mat[1][1] - mat[1][0] * mat[0][1];
 		}
 		double res { 1 };
+
 		//变换得到右上三角矩阵
 		for (int rowIndex = 0; rowIndex < mat._rows - 1; ++rowIndex)
 		{
 			if (abs(mat[rowIndex][rowIndex]) <= DBL_EPSILON)
+
 				//主对角元素为0，向下查找换行
 			{
 				bool isSwaped { false };
 				for (int rowIndex2 = rowIndex + 1; rowIndex2 < mat._rows; ++rowIndex2)
 				{
 					if (abs(mat[rowIndex2][rowIndex]) > DBL_EPSILON)
+
 						//换行
 					{
 						SwapRow(mat, rowIndex, rowIndex2);
@@ -326,12 +334,16 @@ double Matrix::Determinant(const Matrix& matrix)
 					return 0;
 				}
 			}
+
 			//换行后主对角线元素
 			double diag { mat[rowIndex][rowIndex] };
+
 			//使主对角线元素化为1
 			RowTimes(mat, rowIndex, 1 / diag);
+
 			//提出到res
 			res *= diag;
+
 			//下面的行减去该行对应列的倍数
 			for (int rowIndex2 = rowIndex + 1; rowIndex2 < mat._rows; ++rowIndex2)
 			{

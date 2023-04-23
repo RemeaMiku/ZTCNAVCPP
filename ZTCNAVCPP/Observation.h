@@ -7,22 +7,27 @@
 struct ObservationData
 {
 public:
+
 	/// <summary>
 	/// 伪距观测值(m)
 	/// </summary>
 	double		Pseudorange;
+
 	/// <summary>
 	/// 伪距标准差(m)
 	/// </summary>
 	float		PseudorangeStandardDeviation;
+
 	/// <summary>
 	/// 载波相位观测值(m)
 	/// </summary>
 	double		CarrierPhase;
+
 	/// <summary>
 	/// 载波相位标准差(m)
 	/// </summary>
 	float		CarrierPhaseStandardDeviation;
+
 	/// <summary>
 	/// 多普勒频移(Hz)
 	/// </summary>
@@ -50,6 +55,7 @@ class SatelliteObservation
 {
 public:
 	SatelliteObservation() = default;
+
 	/// <summary>
 	/// 返回伪距IF组合
 	/// </summary>
@@ -57,6 +63,7 @@ public:
 	/// <param name="t2">信号类型2</param>
 	/// <returns></returns>
 	double IFOfPseudorange(const SignalType& t1, const SignalType& t2) const;
+
 	/// <summary>
 	/// 返回MW组合
 	/// </summary>
@@ -64,6 +71,7 @@ public:
 	/// <param name="t2">信号类型2</param>
 	/// <returns></returns>
 	double Melbourne_Wübbena(const SignalType& t1, const SignalType& t2) const;
+
 	/// <summary>
 	/// 返回相位GF组合
 	/// </summary>
@@ -71,6 +79,7 @@ public:
 	/// <param name="t2">信号类型2</param>
 	/// <returns></returns>
 	double GFOfCarrierPhase(const SignalType& t1, const SignalType& t2) const;
+
 	/// <summary>
 	/// 返回OEM中对应的信号类型
 	/// </summary>
@@ -78,6 +87,7 @@ public:
 	/// <param name="type"></param>
 	/// <returns></returns>
 	static SignalType GetSignalType(const SatelliteSystem& sys, int type);
+
 	/// <summary>
 	/// 周计数相位观测值转换为米制
 	/// </summary>

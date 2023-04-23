@@ -28,6 +28,7 @@ private:
 	inline static constexpr auto _polyCrc32 { 0xEDB88320u };
 	OEMMessageHeader _header;
 	std::vector<unsigned char> _message;
+
 	/// <summary>
 	/// 返回从message指定位置转换类型得到的字段
 	/// </summary>
@@ -40,6 +41,7 @@ private:
 	{
 		return *reinterpret_cast<const FieldType*>(&_message[offset]);
 	}
+
 	/// <summary>
 	/// 对流位置偏移
 	/// </summary>
@@ -49,6 +51,7 @@ private:
 	{
 		stream.seekg((int)stream.tellg() + offset);
 	}
+
 	/// <summary>
 	/// 从流中直接析出字段
 	/// </summary>
@@ -64,6 +67,7 @@ private:
 		stream.read((char*)&res, fieldSize);
 		return res;
 	}
+
 	/// <summary>
 	/// 返回理论32位CRC校验码
 	/// </summary>
@@ -212,6 +216,7 @@ private:
 		}
 		bestPos.NumbersOfSatelliteTracked = ToDec<unsigned char>(64);
 		bestPos.NumberOfSatelliteUsedInSolution = ToDec<unsigned char>(65);
+
 		//BestPosDatas.push_back(bestPos);
 	}
 	void ReadOEMGPSEPHEM()

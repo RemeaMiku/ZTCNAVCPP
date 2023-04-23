@@ -44,6 +44,7 @@ namespace SinglePointPositioning
 		auto K_d { 155.2E-7 * p / T * (h_d - H) };
 		return K_d / sin(ToRad(sqrt(pow(ToDegree(E), 2) + 6.25))) + K_w / sin(ToRad(sqrt(pow(ToDegree(E), 2) + 2.25)));
 	}
+
 	/// <summary>
 	/// 计算卫星高度角
 	/// </summary>
@@ -55,14 +56,17 @@ namespace SinglePointPositioning
 	{
 		//提取测站到卫星的向量
 		auto obsToSat { Vector(satPos.ToArray()) - Vector(obsPos.ToArray()) };
+
 		//通过改变大地坐标高程来提取测站当地法向量
 		auto obsPos2 { obsPos.ToBLH(e) };
 		obsPos2.H()++;
 		auto obsPos3 { CartCoordinate::FromBLH(obsPos2,e) };
 		auto normal { Vector(obsPos3.ToArray()) - Vector(obsPos.ToArray()) };
+
 		//通过向量内积得到角度
 		return PI / 2 - acos(normal * obsToSat / (normal.Norm() * obsToSat.Norm()));
 	}
+
 	/// <summary>
 	/// 计算信号发射时刻Gps时
 	/// </summary>
@@ -113,10 +117,13 @@ namespace SinglePointPositioning
 	{
 		//指示解算状态
 		bool State;
-		//观测时刻GPST		
+
+		//观测时刻GPST
 		GpsTime Time;
+
 		//测站ECEF坐标
 		CartCoordinate CartCoord;
+
 		//测站WGS-84坐标
 		GeoCoordinate GeoCoord;
 
@@ -125,12 +132,16 @@ namespace SinglePointPositioning
 		double Pdop;
 		double StdPosition;
 		double StdVelocity;
+
 		//各系统卫星数
 		std::map<SatelliteSystem, int> SatelliteNumbers;
+
 		//各系统接收机钟差
 		std::map<SatelliteSystem, double> ClockError;
+
 		//接收机钟速
 		double ClockVelocityError;
+
 		//参与解算卫星数据
 		std::map<Satellite, SatelliteData> SatelliteDatas;
 		friend inline std::ostream& operator<<(std::ostream& os, const SppResult& obsData)
@@ -157,7 +168,6 @@ namespace SinglePointPositioning
 			return os;
 		}
 	};
-
 
 	std::map<SatelliteSystem, int> satNums;
 	std::map<Satellite, CartCoordinate> satPositions;
@@ -190,6 +200,7 @@ namespace SinglePointPositioning
 		{
 			return;
 		}
+
 		//遍历卫星观测值
 		for (auto& [sat, obs] : satObs)
 		{
@@ -198,11 +209,13 @@ namespace SinglePointPositioning
 				auto& eph { EphemerisDataOf[sat] };
 				auto clockError { 0.0 };
 				const auto& t1 { SignalTypesOfSatelliteSystems.at(sat.System)[0] }, & t2 { SignalTypesOfSatelliteSystems.at(sat.System)[1] };
+
 				//计算信号发射时刻t_tr
 				auto& P_1 { obs.Data.at(SignalTypesOfSatelliteSystems.at(sat.System)[0]).Pseudorange };
 				auto t_tr { TimeOfSignalTransmission(time, P_1, clockError) };
 				clockError = eph->ClockError(t_tr);
 				t_tr = TimeOfSignalTransmission(time, P_1, clockError);
+
 				//检查星历是否可用
 				if (eph->IsAvailable(t_tr))
 				{
@@ -214,6 +227,7 @@ namespace SinglePointPositioning
 					clockError = eph->ClockError(t_tr);
 					auto clockVel { eph->ClockSpeedError(t_tr) };
 					auto pif { obs.IFOfPseudorange(t1,t2) };
+
 					//BDS群延迟改正
 					if (sat.System == BDS)
 					{
@@ -236,6 +250,7 @@ namespace SinglePointPositioning
 		{
 			int rowIndex = 0, columnIndex = 3;//列号标记，针对不同系统而言，其钟差对应列号不同
 			auto lastSys { satDatas.begin()->first.System };//系统标记，记录上一个卫星的系统。因为map的排序特性得以实现
+
 			//遍历卫星观测值
 			for (auto& [sat, data] : satDatas)
 			{
@@ -246,6 +261,7 @@ namespace SinglePointPositioning
 				}
 				auto& satPos { data.Coord };
 				auto rho { CartCoordinate::Distance(ObsPos(),data.Coord) };
+
 				//地球自转改正
 				satPos = CartCoordinate(EarthRotationCorrection(EphemerisDataOf[sat]->Omega_e(), satPositions[sat].ToArray(), rho / LightSpeed));
 				std::vector<double> row(paraNum, 0);
@@ -281,9 +297,11 @@ namespace SinglePointPositioning
 			auto& data { it->second };
 			auto& satPos { data.Coord };
 			auto rho { CartCoordinate::Distance(ObsPos(),satPos) };
+
 			//EarthRotationCorrection(EphemerisDataOf[sat]->Omega_e(), satPositions, rho / LightSpeed);
 			auto& e { Ellipsoid::Ellipsoids.at(sat.System) };
 			data.Angle = VerticalAngleOfSatellite(ObsPos(), satPos, e);
+
 			//检查高度角
 			if (data.Angle > VerticalAngleLimit)
 			{
@@ -333,6 +351,7 @@ namespace SinglePointPositioning
 		{
 			return { false };
 		}
+
 		//UpdateSatData();
 		std::map<SatelliteSystem, double> clkErrOf;
 		int rowIndex { 3 };
@@ -440,7 +459,6 @@ namespace RealTimeKinematic
 		}
 		return baseerenceSatellites;
 	}
-
 
 	Matrix B, W, P, a, Q;
 
@@ -615,9 +633,6 @@ namespace RealTimeKinematic
 		}
 	}
 
-
-
-
 	RtkResult RtkFixed(RtkResult& rtkResult, std::map<Satellite, SatelliteObservation>& singleDifferenceObs, const SinglePointPositioning::SppResult& baseSppResult, const SinglePointPositioning::SppResult& rovSppResult, const std::map<SatelliteSystem, Satellite>& refSats)
 	{
 		auto row = Q.RowsCount();
@@ -722,6 +737,7 @@ namespace RealTimeKinematic
 			if (Vector(X.GetColumn(0)).Norm() <= IterationThreshold)
 			{
 				rtkResult.IsFixed = true;
+
 				//rtkResult.RovPos = rovPos;
 				rtkResult.Sigma = sqrt((W.Transpose() * P * W)(0, 0) / (2 * satNum - 3));
 				rtkResult.Pdop = sqrt(Q(0, 0) + Q(1, 1) + Q(2, 2));

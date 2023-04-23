@@ -1,11 +1,11 @@
 #include "OutlierDetector.h"
 using namespace std;
 
-
 std::map<Satellite, SatelliteObservation> OutlierDetector::Filter(const GpsTime& time, const std::map<Satellite, SatelliteObservation>& observations)
 {
 	if (abs(_lastTime - time) <= DBL_EPSILON)
 		return _lastRes;
+
 	//判断观测连续性
 	if (time - _lastTime >= (_interval + DBL_EPSILON))
 	{
@@ -25,6 +25,7 @@ std::map<Satellite, SatelliteObservation> OutlierDetector::Filter(const GpsTime&
 			}
 		}
 	}
+
 	//未出现的卫星连续观测数置0
 	for (auto& [sat, count] : _continuousCountWithoutOutlierOf)
 	{
@@ -42,6 +43,7 @@ bool OutlierDetector::IsOutlier(const Satellite& satellite, const SatelliteObser
 {
 	auto& ts { SignalTypesOfSatelliteSystems.at(satellite.System) };
 	auto& t1 { ts[0] }, & t2 { ts[1] };
+
 	//auto& obs { satelliteObservation[satellite] };
 	auto& count = _continuousCountWithoutOutlierOf[satellite];
 	auto mw { (satelliteObservation.Melbourne_Wübbena(t1, t2) + count * _mwRecordOf[satellite]) / (count + 1) }, gf { satelliteObservation.GFOfCarrierPhase(t1,t2) };
@@ -50,6 +52,7 @@ bool OutlierDetector::IsOutlier(const Satellite& satellite, const SatelliteObser
 	{
 		//非首个历元，则直接判断
 		isOutlier = abs(mw - _mwRecordOf[satellite]) > _dMWLimit || abs(gf - _gfRecordOf[satellite]) > _dGFLimit;
+
 		//若为粗差，则连续观测数置0
 		if (isOutlier)
 		{

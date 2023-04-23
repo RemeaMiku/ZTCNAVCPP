@@ -3,7 +3,6 @@
 #include <limits>
 #include"Matrix.h"
 
-
 int Ld(int n, Matrix& Q, Matrix& L, Matrix& D)
 {
 	Matrix A { Q };

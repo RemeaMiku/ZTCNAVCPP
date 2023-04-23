@@ -39,7 +39,7 @@ distribution.
 
 // Note tha "PutString" hardcodes the same list. This
 // is less flexible than it appears. Changing the entries
-// or order will break putstring.	
+// or order will break putstring.
 TiXmlBase::Entity TiXmlBase::entity[TiXmlBase::NUM_ENTITY] =
 {
 	{ "&amp;",  5, '&' },
@@ -54,10 +54,10 @@ TiXmlBase::Entity TiXmlBase::entity[TiXmlBase::NUM_ENTITY] =
 // Including the basic of this table, which determines the #bytes in the
 // sequence from the lead byte. 1 placed for invalid sequences --
 // although the result will be junk, pass it through as much as possible.
-// Beware of the non-characters in UTF-8:	
+// Beware of the non-characters in UTF-8:
 //				ef bb bf (Microsoft "lead bytes")
 //				ef bf be
-//				ef bf bf 
+//				ef bf bf
 
 const unsigned char TIXML_UTF_LEAD_0 = 0xefU;
 const unsigned char TIXML_UTF_LEAD_1 = 0xbbU;
@@ -75,15 +75,14 @@ const int TiXmlBase::utf8ByteTable[256] =
 		1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	// 0x60
 		1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	// 0x70	End of ASCII range
 		1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	// 0x80 0x80 to 0xc1 invalid
-		1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	// 0x90 
-		1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	// 0xa0 
-		1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	// 0xb0 
+		1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	// 0x90
+		1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	// 0xa0
+		1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	// 0xb0
 		1,	1,	2,	2,	2,	2,	2,	2,	2,	2,	2,	2,	2,	2,	2,	2,	// 0xc0 0xc2 to 0xdf 2 byte
 		2,	2,	2,	2,	2,	2,	2,	2,	2,	2,	2,	2,	2,	2,	2,	2,	// 0xd0
 		3,	3,	3,	3,	3,	3,	3,	3,	3,	3,	3,	3,	3,	3,	3,	3,	// 0xe0 0xe0 to 0xef 3 byte
 		4,	4,	4,	4,	4,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1,	1	// 0xf0 0xf0 to 0xf4 4 byte, 0xf5 and higher invalid
 };
-
 
 void TiXmlBase::ConvertUTF32ToUTF8(unsigned long input, char* output, int* length)
 {
@@ -127,12 +126,11 @@ void TiXmlBase::ConvertUTF32ToUTF8(unsigned long input, char* output, int* lengt
 	}
 }
 
-
 /*static*/ int TiXmlBase::IsAlpha(unsigned char anyByte, TiXmlEncoding /*encoding*/)
 {
 	// This will only work for low-ascii, everything else is assumed to be a valid
 	// letter. I'm not sure this is the best approach, but it is quite tricky trying
-	// to figure out alhabetical vs. not across encoding. So take a very 
+	// to figure out alhabetical vs. not across encoding. So take a very
 	// conservative approach.
 
 //	if ( encoding == TIXML_ENCODING_UTF8 )
@@ -141,6 +139,7 @@ void TiXmlBase::ConvertUTF32ToUTF8(unsigned long input, char* output, int* lengt
 		return isalpha(anyByte);
 	else
 		return 1;	// What else to do? The unicode set is huge...get the english ones right.
+
 	//	}
 	//	else
 	//	{
@@ -148,12 +147,11 @@ void TiXmlBase::ConvertUTF32ToUTF8(unsigned long input, char* output, int* lengt
 	//	}
 }
 
-
 /*static*/ int TiXmlBase::IsAlphaNum(unsigned char anyByte, TiXmlEncoding /*encoding*/)
 {
 	// This will only work for low-ascii, everything else is assumed to be a valid
 	// letter. I'm not sure this is the best approach, but it is quite tricky trying
-	// to figure out alhabetical vs. not across encoding. So take a very 
+	// to figure out alhabetical vs. not across encoding. So take a very
 	// conservative approach.
 
 //	if ( encoding == TIXML_ENCODING_UTF8 )
@@ -162,13 +160,13 @@ void TiXmlBase::ConvertUTF32ToUTF8(unsigned long input, char* output, int* lengt
 		return isalnum(anyByte);
 	else
 		return 1;	// What else to do? The unicode set is huge...get the english ones right.
+
 	//	}
 	//	else
 	//	{
 	//		return isalnum( anyByte );
 	//	}
 }
-
 
 class TiXmlParsingData
 {
@@ -182,6 +180,7 @@ public:
 	}
 
 private:
+
 	// Only used by the document!
 	TiXmlParsingData(const char* start, int _tabsize, int row, int col)
 	{
@@ -196,7 +195,6 @@ private:
 	const char* stamp;
 	int				tabsize;
 };
-
 
 void TiXmlParsingData::Stamp(const char* now, TiXmlEncoding encoding)
 {
@@ -223,14 +221,17 @@ void TiXmlParsingData::Stamp(const char* now, TiXmlEncoding encoding)
 		switch (*pU)
 		{
 			case 0:
+
 				// We *should* never get here, but in case we do, don't
 				// advance past the terminating null character, ever
 				return;
 
 			case '\r':
+
 				// bump down to the next line
 				++row;
 				col = 0;
+
 				// Eat the character
 				++p;
 
@@ -242,6 +243,7 @@ void TiXmlParsingData::Stamp(const char* now, TiXmlEncoding encoding)
 				break;
 
 			case '\n':
+
 				// bump down to the next line
 				++row;
 				col = 0;
@@ -259,6 +261,7 @@ void TiXmlParsingData::Stamp(const char* now, TiXmlEncoding encoding)
 				break;
 
 			case '\t':
+
 				// Eat the character
 				++p;
 
@@ -320,7 +323,6 @@ void TiXmlParsingData::Stamp(const char* now, TiXmlEncoding encoding)
 	assert(stamp);
 }
 
-
 const char* TiXmlBase::SkipWhiteSpace(const char* p, TiXmlEncoding encoding)
 {
 	if (!p || !*p)
@@ -379,6 +381,7 @@ const char* TiXmlBase::SkipWhiteSpace(const char* p, TiXmlEncoding encoding)
 		if (!in->good()) return false;
 
 		int c = in->peek();
+
 		// At this scope, we can't get to a document. So fail silently.
 		if (!IsWhiteSpace(c) || c <= 0)
 			return true;
@@ -536,11 +539,11 @@ const char* TiXmlBase::GetEntity(const char* p, char* value, int* length, TiXmlE
 
 	// So it wasn't an entity, its unrecognized, or something like that.
 	*value = *p;	// Don't put back the last one, since we return it!
+
 	//*length = 1;	// Leave unrecognized entities - this doesn't really work.
 					// Just writes strange XML.
 	return p + 1;
 }
-
 
 bool TiXmlBase::StringEqual(const char* p,
 							const char* tag,
@@ -680,7 +683,7 @@ void TiXmlDocument::StreamIn(std::istream* in, TIXML_STRING* tag)
 
 		if (in->good())
 		{
-			// We now have something we presume to be a node of 
+			// We now have something we presume to be a node of
 			// some sort. Identify it, and call the node to
 			// continue streaming.
 			TiXmlNode* node = Identify(tag->c_str() + tagIndex, TIXML_DEFAULT_ENCODING);
@@ -706,6 +709,7 @@ void TiXmlDocument::StreamIn(std::istream* in, TIXML_STRING* tag)
 			}
 		}
 	}
+
 	// We should have returned sooner.
 	SetError(TIXML_ERROR, 0, 0, TIXML_ENCODING_UNKNOWN);
 }
@@ -826,7 +830,6 @@ void TiXmlDocument::SetError(int err, const char* pError, TiXmlParsingData* data
 	}
 }
 
-
 TiXmlNode* TiXmlNode::Identify(const char* p, TiXmlEncoding encoding)
 {
 	TiXmlNode* returnNode = 0;
@@ -844,7 +847,7 @@ TiXmlNode* TiXmlNode::Identify(const char* p, TiXmlEncoding encoding)
 		return 0;
 	}
 
-	// What is this thing? 
+	// What is this thing?
 	// - Elements start with a letter or underscore, but xml is reserved.
 	// - Comments: <!--
 	// - Decleration: <?xml
@@ -1014,6 +1017,7 @@ void TiXmlElement::StreamIn(std::istream* in, TIXML_STRING* tag)
 						closingTag = true;
 				}
 			}
+
 			// If it was a closing tag, then read in the closing '>' to clean up the input stream.
 			// If it was not, the streaming will be done by the tag.
 			if (closingTag)
@@ -1105,6 +1109,7 @@ const char* TiXmlElement::Parse(const char* p, TiXmlParsingData* data, TiXmlEnco
 		if (*p == '/')
 		{
 			++p;
+
 			// Empty tag.
 			if (*p != '>')
 			{
@@ -1131,7 +1136,7 @@ const char* TiXmlElement::Parse(const char* p, TiXmlParsingData* data, TiXmlEnco
 			// We should find the end tag now
 			// note that:
 			// </foo > and
-			// </foo> 
+			// </foo>
 			// are both valid end tags.
 			if (StringEqual(p, endTag.c_str(), false, encoding))
 			{
@@ -1189,7 +1194,6 @@ const char* TiXmlElement::Parse(const char* p, TiXmlParsingData* data, TiXmlEnco
 	}
 	return p;
 }
-
 
 const char* TiXmlElement::ReadValue(const char* p, TiXmlParsingData* data, TiXmlEncoding encoding)
 {
@@ -1261,7 +1265,6 @@ const char* TiXmlElement::ReadValue(const char* p, TiXmlParsingData* data, TiXml
 	return p;
 }
 
-
 #ifdef TIXML_USE_STL
 void TiXmlUnknown::StreamIn(std::istream* in, TIXML_STRING* tag)
 {
@@ -1285,7 +1288,6 @@ void TiXmlUnknown::StreamIn(std::istream* in, TIXML_STRING* tag)
 	}
 }
 #endif
-
 
 const char* TiXmlUnknown::Parse(const char* p, TiXmlParsingData* data, TiXmlEncoding encoding)
 {
@@ -1348,7 +1350,6 @@ void TiXmlComment::StreamIn(std::istream* in, TIXML_STRING* tag)
 }
 #endif
 
-
 const char* TiXmlComment::Parse(const char* p, TiXmlParsingData* data, TiXmlEncoding encoding)
 {
 	TiXmlDocument* document = GetDocument();
@@ -1391,6 +1392,7 @@ const char* TiXmlComment::Parse(const char* p, TiXmlParsingData* data, TiXmlEnco
 	*/
 
 	value = "";
+
 	// Keep all the white space.
 	while (p && *p && !StringEqual(p, endTag, false, encoding))
 	{
@@ -1403,7 +1405,6 @@ const char* TiXmlComment::Parse(const char* p, TiXmlParsingData* data, TiXmlEnco
 	return p;
 }
 
-
 const char* TiXmlAttribute::Parse(const char* p, TiXmlParsingData* data, TiXmlEncoding encoding)
 {
 	p = SkipWhiteSpace(p, encoding);
@@ -1414,6 +1415,7 @@ const char* TiXmlAttribute::Parse(const char* p, TiXmlParsingData* data, TiXmlEn
 		data->Stamp(p, encoding);
 		location = data->Cursor();
 	}
+
 	// Read the name, the '=' and the value.
 	const char* pErr = p;
 	p = ReadName(p, &name, encoding);
@@ -1466,7 +1468,7 @@ const char* TiXmlAttribute::Parse(const char* p, TiXmlParsingData* data, TiXmlEn
 			if (*p == SINGLE_QUOTE || *p == DOUBLE_QUOTE)
 			{
 				// [ 1451649 ] Attribute values with trailing quotes not handled correctly
-				// We did not have an opening quote but seem to have a 
+				// We did not have an opening quote but seem to have a
 				// closing one. Give up and throw an error.
 				if (document) document->SetError(TIXML_ERROR_READING_ATTRIBUTES, p, data, encoding);
 				return 0;
@@ -1590,6 +1592,7 @@ void TiXmlDeclaration::StreamIn(std::istream* in, TIXML_STRING* tag)
 const char* TiXmlDeclaration::Parse(const char* p, TiXmlParsingData* data, TiXmlEncoding _encoding)
 {
 	p = SkipWhiteSpace(p, _encoding);
+
 	// Find the beginning, find the end, and look for
 	// the stuff in-between.
 	TiXmlDocument* document = GetDocument();
@@ -1653,4 +1656,3 @@ bool TiXmlText::Blank() const
 			return false;
 	return true;
 }
-

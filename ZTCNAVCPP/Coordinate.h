@@ -8,10 +8,12 @@
 class Coordinate
 {
 protected:
+
 	/// <summary>
 	/// 坐标值
 	/// </summary>
 	std::vector<double> _elements;
+
 	/// <summary>
 	/// 构造函数，不可被外部实例化
 	/// </summary>
@@ -29,6 +31,7 @@ public:
 	{
 		return _elements[i];
 	}
+
 	/// <summary>
 	/// 下标常量引用
 	/// </summary>

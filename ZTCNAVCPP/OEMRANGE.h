@@ -9,19 +9,23 @@ class OEMRANGE
 {
 public:
 	OEMMessageHeader Header;
+
 	/// <summary>
 	/// 观测数
 	/// </summary>
 	unsigned long ObservationNumber;
 	OEMRANGE() = default;
 	OEMRANGE(const OEMMessageHeader& hd, unsigned long n);
+
 	/// <summary>
 	/// 卫星观测值数据
 	/// </summary>
 	std::map<Satellite, SatelliteObservation> ObservationOf;
+
 	//std::map<Satellite, SatelliteObservation> Filter();
 private:
 	/*/// <summary>
+
 	/// 粗差探测
 	/// </summary>
 	/// <param name="sat"></param>

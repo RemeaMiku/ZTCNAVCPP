@@ -4,7 +4,7 @@ using namespace std::chrono;
 
 DateTime::DateTime(const int& y, const unsigned& mon, const unsigned& d, const unsigned& h, const unsigned& min, const double& s)
 {
-	auto date{ month{ mon } / d / y };
+	auto date { month{ mon } / d / y };
 	if (date.ok() && h >= 0 && h < 24 && min >= 0 && min < 60 && s >= DBL_EPSILON && s < 60)
 	{
 		_time = utc_clock::from_sys(static_cast<sys_days>(date) + hours(h) + minutes(min) + ns(llround(s * ns::period::den)));

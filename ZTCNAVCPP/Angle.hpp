@@ -1,7 +1,7 @@
 #pragma once
 #include <format>
 
-inline constexpr auto PI{ 3.141592653589793 };
+inline constexpr auto PI { 3.141592653589793 };
 
 namespace Angle
 {
@@ -13,8 +13,9 @@ namespace Angle
 	template<std::floating_point Float>
 	inline constexpr Float ToRad(Float degree) noexcept
 	{
-		return degree * static_cast<Float>(PI) / 180;		
+		return degree * static_cast<Float>(PI) / 180;
 	}
+
 	/// <summary>
 	/// 度分秒制转角度制
 	/// </summary>
@@ -38,6 +39,7 @@ namespace Angle
 	{
 		return rad * 180 / static_cast<Float>(PI);
 	}
+
 	/// <summary>
 	/// 角度制转度分秒制
 	/// </summary>
@@ -49,7 +51,7 @@ namespace Angle
 	inline constexpr void ToDegree(Float degree, int d, unsigned int m, Float s) noexcept
 	{
 		d = static_cast<int>(degree);
-		Float minute{ abs((degree - d)) * 60 };
+		Float minute { abs((degree - d)) * 60 };
 		m = static_cast<unsigned int>(minute);
 		s = static_cast<Float>(minute - m) * 60;
 	}
@@ -64,7 +66,7 @@ namespace Angle
 	/// <returns>度分秒格式字符串</returns>
 	template<std::floating_point Float>
 	inline constexpr std::string ToString(int d, unsigned int m, Float s) noexcept
-	{		
+	{
 		return std::format("{}° {}′ {:.4f}″", d, m, s);
 	}
 };

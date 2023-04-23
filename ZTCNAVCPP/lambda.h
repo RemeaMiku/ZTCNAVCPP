@@ -14,6 +14,7 @@
 #include <math.h>
 #include <memory.h>
 #include "Matrix.h"
+
 //#include "Rover.h"
 
 /* LD factorization (Q=L'*diag(D)*L) -----------------------------------------*/
@@ -73,6 +74,5 @@ int MatrixInv(int n, double a[], double b[]);
 ****************************************************************************/
 
 int MatrixMultiply(const int m1, const int n1, const int m2, const int n2, const double* A, const double* B, double* C);
-
 
 #endif // !lambda_H

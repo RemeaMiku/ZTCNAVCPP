@@ -5,11 +5,14 @@ using vec = vector<double>;
 using ci = const int&;
 using cd = const double&;
 
-CartCoordinate::CartCoordinate() noexcept :Coordinate() {}
+CartCoordinate::CartCoordinate() noexcept :Coordinate()
+{}
 
-CartCoordinate::CartCoordinate(double x, double y, double z) noexcept :Coordinate(x, y, z) {}
+CartCoordinate::CartCoordinate(double x, double y, double z) noexcept :Coordinate(x, y, z)
+{}
 
-CartCoordinate::CartCoordinate(const std::vector<double>& xyz) :Coordinate(xyz) {}
+CartCoordinate::CartCoordinate(const std::vector<double>& xyz) :Coordinate(xyz)
+{}
 
 double CartCoordinate::Distance(const CartCoordinate& p1, const CartCoordinate p2) noexcept
 {
@@ -25,7 +28,7 @@ GeoCoordinate CartCoordinate::ToBLH(const Ellipsoid& e) const noexcept
 	double sqrt = std::sqrt(std::pow(x, 2) + std::pow(y, 2));
 	if (sqrt < 1E-6)
 	{
-		return GeoCoordinate{};
+		return GeoCoordinate {};
 	}
 	double t0 = z / sqrt;
 	double e1_2 = std::pow(e.e1, 2);

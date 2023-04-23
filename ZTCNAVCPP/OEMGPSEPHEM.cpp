@@ -1,3 +1,4 @@
 #include "OEMGPSEPHEM.h"
 
-OEMGPSEPHEM::OEMGPSEPHEM(const OEMMessageHeader& hd) :Header(hd) {}
+OEMGPSEPHEM::OEMGPSEPHEM(const OEMMessageHeader& hd) :Header(hd)
+{}

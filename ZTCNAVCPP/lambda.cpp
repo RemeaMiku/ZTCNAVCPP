@@ -16,26 +16,26 @@
 *-----------------------------------------------------------------------------*/
 #include "lambda.h"
 
-
 /* constants/macros ----------------------------------------------------------*/
 
-
 /* LD factorization (Q=L'*diag(D)*L) -----------------------------------------*/
-static int LD(int n, const double *Q, double *L, double *D)
+static int LD(int n, const double* Q, double* L, double* D)
 {
 	int i, j, k, info = 0;
-    double a, *A;
-    
-	A = new double[n*n];
-	memcpy(A, Q, sizeof(double)*n*n);
-	for (i = n - 1; i >= 0; i--) {
-		if ((D[i] = A[i + i*n]) <= 0.0) {
+	double a, * A;
+
+	A = new double[n * n];
+	memcpy(A, Q, sizeof(double) * n * n);
+	for (i = n - 1; i >= 0; i--)
+	{
+		if ((D[i] = A[i + i * n]) <= 0.0)
+		{
 			info = -1; break;
 		}
 		a = sqrt(D[i]);
-		for (j = 0; j <= i; j++) L[i + j*n] = A[i + j*n] / a;
-		for (j = 0; j <= i - 1; j++) for (k = 0; k <= j; k++) A[j + k*n] -= L[i + k*n] * L[i + j*n];
-		for (j = 0; j <= i; j++) L[i + j*n] /= L[i + i*n];
+		for (j = 0; j <= i; j++) L[i + j * n] = A[i + j * n] / a;
+		for (j = 0; j <= i - 1; j++) for (k = 0; k <= j; k++) A[j + k * n] -= L[i + k * n] * L[i + j * n];
+		for (j = 0; j <= i; j++) L[i + j * n] /= L[i + i * n];
 	}
 
 	delete[]A;
@@ -43,45 +43,49 @@ static int LD(int n, const double *Q, double *L, double *D)
 }
 
 /* integer gauss transformation ----------------------------------------------*/
-void gauss(int n, double *L, double *Z, int i, int j)
+void gauss(int n, double* L, double* Z, int i, int j)
 {
-    int k,mu;
-    
-    if ((mu=(int)ROUND(L[i+j*n]))!=0) {
-        for (k=i;k<n;k++) L[k+n*j]-=(double)mu*L[k+i*n];
-        for (k=0;k<n;k++) Z[k+n*j]-=(double)mu*Z[k+i*n];
-    }
+	int k, mu;
+
+	if ((mu = (int)ROUND(L[i + j * n])) != 0)
+	{
+		for (k = i; k < n; k++) L[k + n * j] -= (double)mu * L[k + i * n];
+		for (k = 0; k < n; k++) Z[k + n * j] -= (double)mu * Z[k + i * n];
+	}
 }
 /* permutations --------------------------------------------------------------*/
-void perm(int n, double *L, double *D, int j, double del, double *Z)
+void perm(int n, double* L, double* D, int j, double del, double* Z)
 {
-    int k;
-    double eta,lam,a0,a1;
-    
-    eta=D[j]/del;
-    lam=D[j+1]*L[j+1+j*n]/del;
-    D[j]=eta*D[j+1]; D[j+1]=del;
-    for (k=0;k<=j-1;k++) {
-        a0=L[j+k*n]; a1=L[j+1+k*n];
-        L[j+k*n]=-L[j+1+j*n]*a0+a1;
-        L[j+1+k*n]=eta*a0+lam*a1;
-    }
-    L[j+1+j*n]=lam;
-    for (k=j+2;k<n;k++) SWAP(L[k+j*n],L[k+(j+1)*n]);
-    for (k=0;k<n;k++) SWAP(Z[k+j*n],Z[k+(j+1)*n]);
+	int k;
+	double eta, lam, a0, a1;
+
+	eta = D[j] / del;
+	lam = D[j + 1] * L[j + 1 + j * n] / del;
+	D[j] = eta * D[j + 1]; D[j + 1] = del;
+	for (k = 0; k <= j - 1; k++)
+	{
+		a0 = L[j + k * n]; a1 = L[j + 1 + k * n];
+		L[j + k * n] = -L[j + 1 + j * n] * a0 + a1;
+		L[j + 1 + k * n] = eta * a0 + lam * a1;
+	}
+	L[j + 1 + j * n] = lam;
+	for (k = j + 2; k < n; k++) SWAP(L[k + j * n], L[k + (j + 1) * n]);
+	for (k = 0; k < n; k++) SWAP(Z[k + j * n], Z[k + (j + 1) * n]);
 }
 
 /* lambda reduction (z=Z'*a, Qz=Z'*Q*Z=L'*diag(D)*L) (base.[1]) ---------------*/
-void reduction(int n, double *L, double *D, double *Z)
+void reduction(int n, double* L, double* D, double* Z)
 {
 	int i, j, k;
 	double del;
 
 	j = n - 2; k = n - 2;
-	while (j >= 0) {
-		if (j <= k) for (i = j + 1; i<n; i++) gauss(n, L, Z, i, j);
-		del = D[j] + L[j + 1 + j*n] * L[j + 1 + j*n] * D[j + 1];
-		if (del + 1E-6<D[j + 1]) { /* compared considering numerical error */
+	while (j >= 0)
+	{
+		if (j <= k) for (i = j + 1; i < n; i++) gauss(n, L, Z, i, j);
+		del = D[j] + L[j + 1 + j * n] * L[j + 1 + j * n] * D[j + 1];
+		if (del + 1E-6 < D[j + 1])
+		{ /* compared considering numerical error */
 			perm(n, L, D, j, del, Z);
 			k = j; j = n - 2;
 		}
@@ -90,79 +94,87 @@ void reduction(int n, double *L, double *D, double *Z)
 }
 
 /* modified lambda (mlambda) search (base. [2]) -------------------------------*/
-int search(int n, int m, const double *L, const double *D,
-                  const double *zs, double *zn, double *s)
+int search(int n, int m, const double* L, const double* D,
+		   const double* zs, double* zn, double* s)
 {
-    int i,j,k,c,nn=0,imax=0;
-    double newdist,maxdist=1E99,y;
-	double *S, *dist, *zb, *z, *step;
+	int i, j, k, c, nn = 0, imax = 0;
+	double newdist, maxdist = 1E99, y;
+	double* S, * dist, * zb, * z, * step;
 
-	S=new double [n*n];
-	dist = new double [n];
-	zb = new double [n];
-	z = new double [n];
-	step = new double [n];
+	S = new double[n * n];
+	dist = new double[n];
+	zb = new double[n];
+	z = new double[n];
+	step = new double[n];
 	memset(z, 0, n * sizeof(double));
-	memset(S, 0, n*n * sizeof(double));
+	memset(S, 0, n * n * sizeof(double));
 
-    k=n-1; dist[k]=0.0;
-    zb[k]=zs[k];
-    z[k]=ROUND(zb[k]); y=zb[k]-z[k]; step[k]=SGN(y);
-    for (c=0;c<LOOPMAX;c++) 
+	k = n - 1; dist[k] = 0.0;
+	zb[k] = zs[k];
+	z[k] = ROUND(zb[k]); y = zb[k] - z[k]; step[k] = SGN(y);
+	for (c = 0; c < LOOPMAX; c++)
 	{
-        newdist=dist[k]+y*y/D[k];
-        if (newdist<maxdist)
+		newdist = dist[k] + y * y / D[k];
+		if (newdist < maxdist)
 		{
-            if (k!=0) 
+			if (k != 0)
 			{
-                dist[--k]=newdist;
-                for (i=0;i<=k;i++) S[k+i*n]=S[k+1+i*n]+(z[k+1]-zb[k+1])*L[k+1+i*n];
-                zb[k]=zs[k]+S[k+k*n];
-                z[k]=ROUND(zb[k]); y=zb[k]-z[k]; step[k]=SGN(y);
-			//	MatrixDisplay(1, n, z);
-            }
-            else {
-                if (nn<m)
-				{
-                    if (nn==0||newdist>s[imax]) imax=nn;
-                    for (i=0;i<n;i++) zn[i+nn*n]=z[i];
-                    s[nn++]=newdist;
-                }
-                else {
-                    if (newdist<s[imax]) 
-					{
-                        for (i=0;i<n;i++) zn[i+imax*n]=z[i];
-                        s[imax]=newdist;
-                        for (i=imax=0;i<m;i++) if (s[imax]<s[i]) imax=i;
-                    }
-                    maxdist=s[imax];
-                }
-                z[0]+=step[0]; y=zb[0]-z[0]; step[0]=-step[0]-SGN(step[0]);
-            }
-        }
-        else {
-            if (k==n-1) break;
-            else {
-                k++;
-                z[k]+=step[k]; y=zb[k]-z[k]; step[k]=-step[k]-SGN(step[k]);
-            }
-        }
-    }
-    for (i=0;i<m-1;i++) { /* sort by s */
-        for (j=i+1;j<m;j++) {
-            if (s[i]<s[j]) continue;
-            SWAP(s[i],s[j]);
-            for (k=0;k<n;k++) SWAP(zn[k+i*n],zn[k+j*n]);
-        }
-    }
-     
-    if (c>=LOOPMAX) {
-		delete []S; delete []dist; delete []zb; delete []z; delete []step;
-        return -1;
-    }
+				dist[--k] = newdist;
+				for (i = 0; i <= k; i++) S[k + i * n] = S[k + 1 + i * n] + (z[k + 1] - zb[k + 1]) * L[k + 1 + i * n];
+				zb[k] = zs[k] + S[k + k * n];
+				z[k] = ROUND(zb[k]); y = zb[k] - z[k]; step[k] = SGN(y);
 
-	delete []S; delete []dist; delete []zb; delete []z; delete []step;
-    return 0;
+				//	MatrixDisplay(1, n, z);
+			}
+			else
+			{
+				if (nn < m)
+				{
+					if (nn == 0 || newdist > s[imax]) imax = nn;
+					for (i = 0; i < n; i++) zn[i + nn * n] = z[i];
+					s[nn++] = newdist;
+				}
+				else
+				{
+					if (newdist < s[imax])
+					{
+						for (i = 0; i < n; i++) zn[i + imax * n] = z[i];
+						s[imax] = newdist;
+						for (i = imax = 0; i < m; i++) if (s[imax] < s[i]) imax = i;
+					}
+					maxdist = s[imax];
+				}
+				z[0] += step[0]; y = zb[0] - z[0]; step[0] = -step[0] - SGN(step[0]);
+			}
+		}
+		else
+		{
+			if (k == n - 1) break;
+			else
+			{
+				k++;
+				z[k] += step[k]; y = zb[k] - z[k]; step[k] = -step[k] - SGN(step[k]);
+			}
+		}
+	}
+	for (i = 0; i < m - 1; i++)
+	{ /* sort by s */
+		for (j = i + 1; j < m; j++)
+		{
+			if (s[i] < s[j]) continue;
+			SWAP(s[i], s[j]);
+			for (k = 0; k < n; k++) SWAP(zn[k + i * n], zn[k + j * n]);
+		}
+	}
+
+	if (c >= LOOPMAX)
+	{
+		delete[]S; delete[]dist; delete[]zb; delete[]z; delete[]step;
+		return -1;
+	}
+
+	delete[]S; delete[]dist; delete[]zb; delete[]z; delete[]step;
+	return 0;
 }
 /* lambda/mlambda integer least-square estimation ------------------------------
 * integer least-square estimation. reduction is performed by lambda (base.[1]),
@@ -176,43 +188,42 @@ int search(int n, int m, const double *L, const double *D,
 * return : status (0:ok,other:error)
 * notes  : matrix stored by column-major order (fortran convension)
 *-----------------------------------------------------------------------------*/
-int lambda(int n, int m, const double *a, const double *Q, double *F, double *s)
+int lambda(int n, int m, const double* a, const double* Q, double* F, double* s)
 {
-    int i, info;
-	double *L, *D, *Z, *ZT, *z, *E;
-	
-	if (n<=0||m<=0) return -1;
-	L = new double [n*n];
-	D = new double [n];
-	Z = new double [n*n];
-	ZT = new double [n*n];
-	z = new double [n];
-	E = new double [n*2]; 
+	int i, info;
+	double* L, * D, * Z, * ZT, * z, * E;
 
-	memset(L, 0, n*n*sizeof(double));
-	memset(Z, 0, n*n*sizeof(double));
-	for(i=0; i<n; i++)  Z[i*(n+1)]=1.0;
-    
-    /* LD factorization */
-    if (!(info=LD(n,Q,L,D)))
+	if (n <= 0 || m <= 0) return -1;
+	L = new double[n * n];
+	D = new double[n];
+	Z = new double[n * n];
+	ZT = new double[n * n];
+	z = new double[n];
+	E = new double[n * 2];
+
+	memset(L, 0, n * n * sizeof(double));
+	memset(Z, 0, n * n * sizeof(double));
+	for (i = 0; i < n; i++)  Z[i * (n + 1)] = 1.0;
+
+	/* LD factorization */
+	if (!(info = LD(n, Q, L, D)))
 	{
 		/* lambda reduction */
 		reduction(n, L, D, Z);
 		MatrixMultiply(n, n, n, 1, Z, a, z);
 
 		/* mlambda search */
-		if (!(info=search(n,m,L,D,z,E,s))) 
+		if (!(info = search(n, m, L, D, z, E, s)))
 		{
-            MatrixInv(n, Z, ZT);
+			MatrixInv(n, Z, ZT);
 			MatrixMultiply(n, n, n, 1, ZT, E, F);
-			MatrixMultiply(n, n, n, 1, ZT, E+n, F+n);
-        }
+			MatrixMultiply(n, n, n, 1, ZT, E + n, F + n);
+		}
 	}
 
-	delete [] L; delete [] D; delete []Z; delete []ZT; delete[]z; delete []E;
+	delete[] L; delete[] D; delete[]Z; delete[]ZT; delete[]z; delete[]E;
 	return info;
 }
-
 
 /****************************************************************************
   MatrixInv
@@ -371,12 +382,12 @@ int MatrixInv(int n, double a[], double b[])
 
 ****************************************************************************/
 
-
-int MatrixMultiply(const int m1, const int n1, const int m2, const int n2,const double* A,const double* B, double* C)
+int MatrixMultiply(const int m1, const int n1, const int m2, const int n2, const double* A, const double* B, double* C)
 {
 	//C(m1,n2)=A(m1,n1)*B(m2,n2)
 	int i, j, k;
 	double sum;
+
 	//先判断矩阵行列是否满足相乘的条件
 	if (n1 != m2)
 	{
