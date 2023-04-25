@@ -429,7 +429,7 @@ namespace RealTimeKinematic
 
 	std::map<SatelliteSystem, Satellite> FindReferenceSatellite(const std::map<Satellite, SatelliteObservation>& singleDifferenceObservations)
 	{
-		std::map<SatelliteSystem, Satellite> baseerenceSatellites;
+		std::map<SatelliteSystem, Satellite> referenceSatellites;
 		std::map<SatelliteSystem, std::vector<Satellite>> candidateSatellites;
 		for (auto& [satellite, observation] : singleDifferenceObservations)
 		{
@@ -455,9 +455,9 @@ namespace RealTimeKinematic
 				}
 			}
 			if (maxSat.has_value())
-				baseerenceSatellites[system] = maxSat.value();
+				referenceSatellites[system] = maxSat.value();
 		}
-		return baseerenceSatellites;
+		return referenceSatellites;
 	}
 
 	Matrix B, W, P, a, Q;
@@ -643,11 +643,17 @@ namespace RealTimeKinematic
 		double* F = new double[row * 2];
 		double* s = new double[2];
 		if (lambda(row, 2, aPtr, QPtr, F, s) != 0)
+		{
+			delete[] QPtr, aPtr, F, s;
 			return rtkResult;
+		}
 		auto ratio = s[1] / s[0];
 		rtkResult.Ratio = ratio;
 		if (ratio <= 3)
+		{
+			delete[] QPtr, aPtr, F, s;
 			return rtkResult;
+		}
 		Matrix f { row,1 };
 		for (size_t i = 0; i < row; i++)
 		{
@@ -719,12 +725,12 @@ namespace RealTimeKinematic
 				{
 					if (rowStartIndex == columnStartIndex + 2 * i)
 					{
-						P(rowStartIndex, rowStartIndex) = n / (2 * sigmaL * sigmaL * (n + 1));
-						P(rowStartIndex + 1, rowStartIndex + 1) = n / (2 * sigmaL * sigmaL * (n + 1));
+						P(rowStartIndex, rowStartIndex) = n / (n + 1);
+						P(rowStartIndex + 1, rowStartIndex + 1) = n / (n + 1);
 						continue;
 					}
-					P(rowStartIndex, columnStartIndex + 2 * i) = -1 / (2 * sigmaL * sigmaL * (n + 1));
-					P(rowStartIndex + 1, columnStartIndex + 2 * i + 1) = -1 / (2 * sigmaL * sigmaL * (n + 1));
+					P(rowStartIndex, columnStartIndex + 2 * i) = -1 / (n + 1);
+					P(rowStartIndex + 1, columnStartIndex + 2 * i + 1) = -1 / (n + 1);
 				}
 				satIndex++;
 			}
@@ -737,8 +743,6 @@ namespace RealTimeKinematic
 			if (Vector(X.GetColumn(0)).Norm() <= IterationThreshold)
 			{
 				rtkResult.IsFixed = true;
-
-				//rtkResult.RovPos = rovPos;
 				rtkResult.Sigma = sqrt((W.Transpose() * P * W)(0, 0) / (2 * satNum - 3));
 				rtkResult.Pdop = sqrt(Q(0, 0) + Q(1, 1) + Q(2, 2));
 				delete[] QPtr, aPtr, F, s;

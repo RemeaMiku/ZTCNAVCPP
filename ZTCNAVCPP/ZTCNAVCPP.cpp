@@ -290,10 +290,12 @@ int main()
 			DoRtkByFile(baseSource, rovSource, resTarget);
 		if (config.SourceMode == "Socket")
 			DoRtkBySocket(baseSource, rovSource, resTarget);
+		return 0;
 	}
 	if (config.SolutionMode == "Spp")
 	{
 		cout << "DoSpp\n";
+		return 0;
 	}
 	cout << "解算模式有误\n";
 }
