@@ -166,7 +166,6 @@
     <ClInclude Include="GlobalIncludes.h" />
     <ClInclude Include="GpsTime.h" />
     <ClInclude Include="lambda.h" />
-    <ClInclude Include="Lambda.hpp" />
     <ClInclude Include="Matrix.h" />
     <ClInclude Include="Observation.h" />
     <ClInclude Include="OEMBDSEPHEMRIS.h" />

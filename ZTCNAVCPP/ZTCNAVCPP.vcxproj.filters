@@ -39,6 +39,12 @@
     <Filter Include="源文件\Navigation">
       <UniqueIdentifier>{6d44c6f0-aaf5-4e3f-ba89-718750caf542}</UniqueIdentifier>
     </Filter>
+    <Filter Include="头文件\Config">
+      <UniqueIdentifier>{99147731-5d9f-49d5-a0f0-e0035a6d8ae7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\Config">
+      <UniqueIdentifier>{4da51eac-e172-45a9-afb8-23f018c066eb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ZTCNAVCPP.cpp">
@@ -95,23 +101,23 @@
     <ClCompile Include="GpsTime.cpp">
       <Filter>源文件\Time</Filter>
     </ClCompile>
-    <ClCompile Include="OutlierDetector.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="lambda.cpp">
-      <Filter>源文件</Filter>
+      <Filter>源文件\Navigation</Filter>
     </ClCompile>
-    <ClCompile Include="tinyxmlparser.cpp">
-      <Filter>源文件</Filter>
+    <ClCompile Include="OutlierDetector.cpp">
+      <Filter>源文件\Navigation</Filter>
     </ClCompile>
     <ClCompile Include="tinystr.cpp">
-      <Filter>源文件</Filter>
+      <Filter>源文件\Config</Filter>
     </ClCompile>
     <ClCompile Include="tinyxml.cpp">
-      <Filter>源文件</Filter>
+      <Filter>源文件\Config</Filter>
     </ClCompile>
     <ClCompile Include="tinyxmlerror.cpp">
-      <Filter>源文件</Filter>
+      <Filter>源文件\Config</Filter>
+    </ClCompile>
+    <ClCompile Include="tinyxmlparser.cpp">
+      <Filter>源文件\Config</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -181,23 +187,20 @@
     <ClInclude Include="GlobalIncludes.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="OutlierDetector.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Lambda.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="lambda.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="Config.hpp">
-      <Filter>头文件</Filter>
+      <Filter>头文件\Config</Filter>
     </ClInclude>
     <ClInclude Include="tinystr.h">
-      <Filter>头文件</Filter>
+      <Filter>头文件\Config</Filter>
     </ClInclude>
     <ClInclude Include="tinyxml.h">
-      <Filter>头文件</Filter>
+      <Filter>头文件\Config</Filter>
+    </ClInclude>
+    <ClInclude Include="OutlierDetector.h">
+      <Filter>头文件\Navigation</Filter>
+    </ClInclude>
+    <ClInclude Include="lambda.h">
+      <Filter>头文件\Navigation</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

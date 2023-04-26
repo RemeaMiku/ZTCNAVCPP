@@ -2,14 +2,16 @@
 <!--ZTCNAVCPP 配置文件-->
 <Config>
     <!--Spp/Rtk-->
+    <!--当SolutionMode为Spp时，Base的DataSource和ECEF
+    Coord将被忽略-->
     <SolutionMode>Rtk</SolutionMode>
     <!--Mode=File/Socket-->
     <SourceDictionary Mode="File">
         <!--Key=Rover/Base,内部文本是一个文件路径或IP地址:端口号，例如：127.0.0.1:5000-->
         <DataSource Key="Rover">D:\RemeaMiku study\course in
-            progress\short-baseline\rover.bin</DataSource>
+            progress\zero-baseline\rover.bin</DataSource>
         <DataSource Key="Base">D:\RemeaMiku study\course in
-            progress\short-baseline\base.bin</DataSource>
+            progress\zero-baseline\base.bin</DataSource>
     </SourceDictionary>
     <ParameterDictionary>
         <Parameter Key="Base ECEF X Coord">-2267804.5263</Parameter>

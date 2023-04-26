@@ -28,7 +28,7 @@ SynchronousState GetSynchronousState(const GpsTime& rovTime, const GpsTime& base
 	return Synchronous;
 }
 
-void DoRtkByFile(const path& basePath, const path& rovPath, path& resPath)
+void DoRtkByFile(const path& basePath, const path& rovPath, const path& resPath)
 {
 	if (!exists(basePath) || !exists(rovPath))
 	{
@@ -130,16 +130,16 @@ void DoRtkBySocket(const string& baseAddress, const string& rovAddress, const pa
 		cout << "输出路径有误\n";
 		return;
 	}
-	string title { "NO. MODE STATUS GPST_WN GPST_SOW ROV_X ROV_Y ROV_Z ROV_B ROV_L ROV_H BASELINE_X BASELINE_Y BASELINE_Z RATIO PDOP SIGMA" };
-	cout << title << '\n';
-	resStream << title << '\n';
-	stringstream rovStream, baseStream;
 	SOCKET rovListener, baseListener;
 	if (!OpenSocket(baseListener, baseIp.c_str(), basePort) || !OpenSocket(rovListener, rovIp.c_str(), rovPort))
 	{
 		cout << "输入地址有误\n";
 		return;
 	}
+	string title { "NO. MODE STATUS GPST_WN GPST_SOW ROV_X ROV_Y ROV_Z ROV_B ROV_L ROV_H BASELINE_X BASELINE_Y BASELINE_Z RATIO PDOP SIGMA" };
+	cout << title << '\n';
+	resStream << title << '\n';
+	stringstream rovStream, baseStream;
 	OEMDecoder<stringstream> decoder;
 	OutlierDetector rovDetector;
 	OutlierDetector baseDetector;
@@ -248,6 +248,83 @@ void DoRtkBySocket(const string& baseAddress, const string& rovAddress, const pa
 	}
 }
 
+void DoSppByFile(const path& inputPath, const path& resPath)
+{
+	if (!exists(inputPath))
+	{
+		cout << "输入路径有误\n";
+		return;
+	}
+	ifstream is { inputPath,ios::binary | ios::in };
+	ofstream os { resPath,ios::out };
+	if (!os)
+	{
+		cout << "输出路径有误\n";
+	}
+	OEMDecoder<ifstream> decoder;
+	OutlierDetector detector;
+	string title { "NUMBER STATUS GPST_WN GPST_SOW POS_X POS_Y POS_Z POS_B POS_L POS_H VEL_X VEL_Y VEL_Z CLKVELERR PDOP SPPSIGAMA SPVSIGMA SYS:SATNUM SYS:CLKERR" };
+	cout << title << "\n";
+	os << title << "\n";
+	auto i { 0 };
+	while (!is.eof())
+	{
+		auto rangeOrNull = decoder.Read(is);
+		if (rangeOrNull.has_value())
+		{
+			i++;
+			auto& range = rangeOrNull.value();
+			auto obs = detector.Filter(range.Header.Time, range.ObservationOf);
+			auto res { SinglePointPositioning::Solve(range.Header.Time,obs) };
+			cout << format("{} ", i) << res << "\n";
+			os << format("{} ", i) << res << "\n";
+		}
+	}
+}
+
+void DoSppBySocket(const string& inputAddress, const path& resPath)
+{
+	auto [ip, port] = StringToIpWithPort(inputAddress);
+	ofstream os { resPath,ios::out };
+	if (!os)
+	{
+		cout << "输出路径有误\n";
+	}
+	SOCKET listener;
+	if (!OpenSocket(listener, ip.c_str(), port))
+	{
+		cout << "输入地址有误\n";
+	}
+	OEMDecoder<stringstream> decoder;
+	OutlierDetector detector;
+	stringstream is;
+	string title { "NUMBER STATUS GPST_WN GPST_SOW POS_X POS_Y POS_Z POS_B POS_L POS_H VEL_X VEL_Y VEL_Z CLKVELERR PDOP SPPSIGAMA SPVSIGMA SYS:SATNUM SYS:CLKERR" };
+	cout << title << "\n";
+	os << title << "\n";
+	auto i { 0 };
+	while (true)
+	{
+		auto n = recv(listener, (char*)rovBuf, 40960, 0);
+		if (n >= 0)
+		{
+			UCharBufferToStream(rovBuf, n, is);
+			while (!is.eof())
+			{
+				auto rangeOrNull = decoder.Read(is);
+				if (rangeOrNull.has_value())
+				{
+					i++;
+					auto& range = rangeOrNull.value();
+					auto obs = detector.Filter(range.Header.Time, range.ObservationOf);
+					auto res { SinglePointPositioning::Solve(range.Header.Time,obs) };
+					cout << format("{} ", i) << res << "\n";
+					os << format("{} ", i) << res << "\n";
+				}
+			}
+		}
+	}
+}
+
 void PrintConfig(Config& config)
 {
 	cout << "配置信息如下\n";
@@ -283,19 +360,28 @@ int main()
 		auto& baseSource = config.SourceDictionary["Base"];
 		auto& rovSource = config.SourceDictionary["Rover"];
 		auto& resTarget = config.TargetDictionary["Result"];
-		auto& logTarget = config.SourceDictionary["Log"];
 		if (resTarget == "Auto")
 			resTarget = format("{:%Y%m%d%H%M%S}.csv", time_point_cast<seconds>(utc_clock::now()));
 		if (config.SourceMode == "File")
 			DoRtkByFile(baseSource, rovSource, resTarget);
-		if (config.SourceMode == "Socket")
+		else if (config.SourceMode == "Socket")
 			DoRtkBySocket(baseSource, rovSource, resTarget);
-		return 0;
+		else
+			cout << "SourceDictionary的Mode属性有误\n";
 	}
-	if (config.SolutionMode == "Spp")
+	else if (config.SolutionMode == "Spp")
 	{
-		cout << "DoSpp\n";
-		return 0;
+		auto& source = config.SourceDictionary["Rover"];
+		auto& resTarget = config.TargetDictionary["Result"];
+		if (resTarget == "Auto")
+			resTarget = format("{:%Y%m%d%H%M%S}.csv", time_point_cast<seconds>(utc_clock::now()));
+		if (config.SourceMode == "File")
+			DoSppByFile(source, resTarget);
+		else if (config.SourceMode == "Socket")
+			DoSppBySocket(source, resTarget);
+		else
+			cout << "SourceDictionary的Mode属性有误\n";
 	}
-	cout << "解算模式有误\n";
+	else
+		cout << "解算模式有误\n";
 }

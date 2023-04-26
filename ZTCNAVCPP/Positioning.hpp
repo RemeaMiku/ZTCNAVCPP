@@ -11,7 +11,6 @@
 #include "GpsTime.h"
 #include "Data.h"
 #include "Matrix.h"
-#include "Lambda.hpp"
 #include "lambda.h"
 namespace SinglePointPositioning
 {
@@ -714,7 +713,7 @@ namespace RealTimeKinematic
 				auto rho = (rovSatDis - rovRefSatDis) - (baseSatDis - baseRefSatDis);
 				W(rowStartIndex, 0) = L1 - rho - lambda1 * N1;
 				W(rowStartIndex + 1, 0) = L2 - rho - lambda2 * N2;
-				auto sigmaL = sqrt(0.0005);
+				auto sigmaL = 1;
 				n = ddObsNums[sat.System];
 				if (sat.System != lastSys)
 				{
@@ -725,12 +724,12 @@ namespace RealTimeKinematic
 				{
 					if (rowStartIndex == columnStartIndex + 2 * i)
 					{
-						P(rowStartIndex, rowStartIndex) = n / (n + 1);
-						P(rowStartIndex + 1, rowStartIndex + 1) = n / (n + 1);
+						P(rowStartIndex, rowStartIndex) = n / (2 * sigmaL * sigmaL * (n + 1));
+						P(rowStartIndex + 1, rowStartIndex + 1) = n / (2 * sigmaL * sigmaL * (n + 1));
 						continue;
 					}
-					P(rowStartIndex, columnStartIndex + 2 * i) = -1 / (n + 1);
-					P(rowStartIndex + 1, columnStartIndex + 2 * i + 1) = -1 / (n + 1);
+					P(rowStartIndex, columnStartIndex + 2 * i) = -1 / (2 * sigmaL * sigmaL * (n + 1));
+					P(rowStartIndex + 1, columnStartIndex + 2 * i + 1) = -1 / (2 * sigmaL * sigmaL * (n + 1));
 				}
 				satIndex++;
 			}
